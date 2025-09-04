@@ -1,0 +1,919 @@
+import React, { useState, useRef } from 'react';
+import { ProcessIcon } from './componentes/ProcessIcon';
+import { FileIcon, UploadIcon, CheckCircleIcon, XIcon , AlertCircleIcon, DownloadIcon} from 'lucide-react';
+
+// Ícones SVG inline
+
+function App() {
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [extractedData, setExtractedData] = useState(null);
+  const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const extractDataFromPDF = async (file) => {
+    try {
+      // Carregar PDF.js via script tag
+      if (!window.pdfjsLib) {
+        await loadPDFJS();
+      }
+
+      // Configurar worker
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+      // Converter arquivo para ArrayBuffer
+      const arrayBuffer = await file.arrayBuffer();
+      
+      // Carregar PDF
+      const pdf = await window.pdfjsLib.getDocument(arrayBuffer).promise;
+      
+      let fullText = '';
+      
+      // Extrair texto de todas as páginas
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        fullText += pageText + '\n';
+      }
+
+      // Processar texto extraído usando regex e parsing manual
+      const extractedData = parseOccurrenceData(fullText);
+      
+      return extractedData;
+    } catch (error) {
+      console.error('Erro ao extrair dados:', error);
+      throw new Error('Falha ao processar o PDF: ' + error.message);
+    }
+  };
+
+  const loadPDFJS = () => {
+    return new Promise((resolve, reject) => {
+      if (window.pdfjsLib) {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      script.onload = () => {
+        if (window.pdfjsLib) {
+          resolve();
+        } else {
+          reject(new Error('Falha ao carregar PDF.js'));
+        }
+      };
+      script.onerror = () => reject(new Error('Erro ao carregar PDF.js'));
+      document.head.appendChild(script);
+    });
+  };
+
+  const parseOccurrenceData = (text) => {
+    //console.log('Texto extraído do PDF:', text); 
+    
+    // Função para extrair informações usando regex mais específicos
+    const extractField = (pattern, text, defaultValue = 'Não informado') => {
+      console.log(`Pattern: ${pattern}, `); 
+      const match = text.match(pattern);
+      const result = match ? match[1].trim() : defaultValue;
+      console.log(`Pattern: ${pattern}, Result: ${result}`); 
+      return result;
+    };
+
+    // =====================================================
+    // EXTRAIR NÚMERO DA OCORRÊNCIA
+    // =====================================================
+    // Padrão mais específico para capturar o número completo da ocorrência
+    // Exemplo: "CIMOB20250828013306-1-OC-AMT"
+    let numeroOcorrencia = extractField(/Ocorrência\s*N°:\s*([A-Z0-9-]+(?:-[A-Z]+)*)\s/, text);
+    
+    if (numeroOcorrencia === 'Não informado') {
+      // Tentativa alternativa com padrão mais amplo
+      numeroOcorrencia = extractField(/Ocorrência\s*N°:\s*([A-Z]{5}\d{11}-\d+-[A-Z]+-[A-Z]+)/, text);
+    }
+    
+    if (numeroOcorrencia === 'Não informado') {
+      // Padrão mais genérico como fallback
+      numeroOcorrencia = extractField(/N°:\s*([A-Z0-9-]+)/, text);
+    }
+  
+    const result = {
+      numeroOcorrencia,
+     
+    };
+
+    console.log('Dados extraídos:', result); 
+    return result;
+  };
+
+  const generateNewPDF = async (data) => {
+    try {
+      const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Ocorrência</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        .header p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .section {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+        .section-title {
+            background-color: #f0f0f0;
+            padding: 8px 12px;
+            font-weight: bold;
+            border-left: 4px solid #2563eb;
+            margin-bottom: 10px;
+        }
+        .field-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .field {
+            flex: 1;
+            min-width: 200px;
+        }
+        .field-label {
+            font-weight: bold;
+            color: #333;
+        }
+        .field-value {
+            color: #555;
+            margin-top: 2px;
+        }
+        .full-width {
+            width: 100%;
+        }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 10px;
+            color: #888;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Central de Atendimento e Despacho</h1>
+        <p>Superintendência de Trânsito e Transportes Públicos</p>
+        <p>Relatório de Ocorrência Reorganizado</p>
+        <p><strong>Ocorrência N°:</strong> ${data.numeroOcorrencia || 'Não informado'}</p>
+        <p><strong>Data/Hora:</strong> ${data.dataHora || 'Não informado'}</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">1. NATUREZA INICIAL</div>
+        <div class="field">
+            <div class="field-label">Natureza:</div>
+            <div class="field-value">${data.naturezaInicial || 'Não informado'}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">2. NARRATIVAS</div>
+        <div class="field full-width">
+            <div class="field-label">Descrição:</div>
+            <div class="field-value">${data.narrativas || 'Não informado'}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">3. DADOS DA LOCALIZAÇÃO (PRINCIPAL)</div>
+        <div class="field-group">
+            <div class="field">
+                <div class="field-label">Município:</div>
+                <div class="field-value">${data.dadosLocalizacao1?.municipio || 'Não informado'}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Logradouro:</div>
+                <div class="field-value">${data.dadosLocalizacao1?.logradouro || 'Não informado'}</div>
+            </div>
+        </div>
+        <div class="field-group">
+            <div class="field">
+                <div class="field-label">Bairro:</div>
+                <div class="field-value">${data.dadosLocalizacao1?.bairro || 'Não informado'}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Complemento:</div>
+                <div class="field-value">${data.dadosLocalizacao1?.complemento || 'Não informado'}</div>
+            </div>
+        </div>
+        <div class="field">
+            <div class="field-label">Tipo de Local:</div>
+            <div class="field-value">${data.dadosLocalizacao1?.tipoLocal || 'Não informado'}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">4. DADOS DA LOCALIZAÇÃO (DETALHES)</div>
+        <div class="field-group">
+            <div class="field">
+                <div class="field-label">Tipo de Via:</div>
+                <div class="field-value">${data.dadosLocalizacao2?.tipoVia || 'Não informado'}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Número:</div>
+                <div class="field-value">${data.dadosLocalizacao2?.numero || 'Não informado'}</div>
+            </div>
+        </div>
+        <div class="field-group">
+            <div class="field">
+                <div class="field-label">CEP:</div>
+                <div class="field-value">${data.dadosLocalizacao2?.cep || 'Não informado'}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Ponto de Referência:</div>
+                <div class="field-value">${data.dadosLocalizacao2?.pontoReferencia || 'Não informado'}</div>
+            </div>
+        </div>
+        <div class="field-group">
+            <div class="field">
+                <div class="field-label">Latitude:</div>
+                <div class="field-value">${data.dadosLocalizacao2?.latitude || 'Não informado'}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Longitude:</div>
+                <div class="field-value">${data.dadosLocalizacao2?.longitude || 'Não informado'}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">5. EMPENHOS - VTR E EQUIPAMENTOS</div>
+        <div class="field-group">
+            <div class="field">
+                <div class="field-label">VTR:</div>
+                <div class="field-value">${data.empenhos?.vtr || 'Não informado'}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Equipamentos:</div>
+                <div class="field-value">${data.empenhos?.equipamentos || 'Não informado'}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">6. EMPENHO - DESPACHADO</div>
+        <div class="field">
+            <div class="field-label">Data/Hora Despacho:</div>
+            <div class="field-value">${data.empenhos?.despachado || 'Não informado'}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">7. EMPENHOS - EM DESLOCAMENTO</div>
+        <div class="field">
+            <div class="field-label">Status:</div>
+            <div class="field-value">${data.empenhos?.deslocamento || 'Não informado'}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">8. EMPENHOS - CHEGADA NO LOCAL</div>
+        <div class="field">
+            <div class="field-label">Data/Hora Chegada:</div>
+            <div class="field-value">${data.empenhos?.chegadaLocal || 'Não informado'}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">9. EMPENHOS - LIBERADO</div>
+        <div class="field">
+            <div class="field-label">Data/Hora Liberação:</div>
+            <div class="field-value">${data.empenhos?.liberado || 'Não informado'}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">10. RELATOS</div>
+        <div class="field full-width">
+            <div class="field-label">Relatos Adicionais:</div>
+            <div class="field-value">${data.relatos || 'Não informado'}</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Relatório gerado automaticamente em ${new Date().toLocaleString('pt-BR')}</p>
+        <p>Sistema de Processamento de Ocorrências</p>
+    </div>
+</body>
+</html>`;
+
+      // Criar blob do HTML
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      
+      // Criar link para download
+      const link = document.createElement('a');
+      link.href = url;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      link.download = `relatorio_ocorrencia_${timestamp}.html`;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      return true;
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      throw new Error('Falha ao gerar relatório');
+    }
+  };
+
+  const handleFile = async (file) => {
+    setError('');
+    setExtractedData(null);
+    
+    if (file.type !== 'application/pdf') {
+      setError('Por favor, selecione apenas arquivos PDF.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError('O arquivo deve ter no máximo 10MB.');
+      return;
+    }
+
+    setUploading(true);
+    
+    setTimeout(() => {
+      setUploadedFile({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+        file: file
+      });
+      setUploading(false);
+    }, 1000);
+  };
+
+  const processPDF = async () => {
+    if (!uploadedFile?.file) return;
+    
+    setProcessing(true);
+    setError('');
+    
+    try {
+      const data = await extractDataFromPDF(uploadedFile.file);
+      setExtractedData(data);
+    } catch (err) {
+      setError('Erro ao processar PDF: ' + err.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const downloadReport = async () => {
+    if (!extractedData) return;
+    
+    try {
+      await generateNewPDF(extractedData);
+    } catch (err) {
+      setError('Erro ao gerar relatório: ' + err.message);
+    }
+  };
+
+  const removeFile = () => {
+    setUploadedFile(null);
+    setExtractedData(null);
+    setError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const openFileDialog = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  // Estilos
+  const containerStyle = {
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%)',
+    padding: '16px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+  };
+
+  const mainContainerStyle = {
+    maxWidth: '800px',
+    margin: '0 auto'
+  };
+
+  const headerStyle = {
+    textAlign: 'center',
+    marginBottom: '32px',
+    paddingTop: '32px'
+  };
+
+  const headerIconStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '64px',
+    height: '64px',
+    backgroundColor: '#2563eb',
+    borderRadius: '50%',
+    marginBottom: '16px'
+  };
+
+  const titleStyle = {
+    fontSize: '32px',
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: '8px',
+    margin: '0 0 8px 0'
+  };
+
+  const subtitleStyle = {
+    color: '#6b7280',
+    margin: 0
+  };
+
+  const uploadCardStyle = {
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    padding: '32px',
+    marginBottom: '24px'
+  };
+
+  const uploadAreaStyle = {
+    border: `2px dashed ${dragActive ? '#3b82f6' : '#d1d5db'}`,
+    borderRadius: '12px',
+    padding: '32px',
+    textAlign: 'center',
+    backgroundColor: dragActive ? '#eff6ff' : 'transparent',
+    transition: 'all 0.2s ease',
+    cursor: 'pointer'
+  };
+
+  const iconContainerStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '64px',
+    height: '64px',
+    backgroundColor: '#f3f4f6',
+    borderRadius: '50%',
+    marginBottom: '16px'
+  };
+
+  const uploadTextStyle = {
+    fontSize: '18px',
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '8px'
+  };
+
+  const uploadSubtextStyle = {
+    fontSize: '14px',
+    color: '#6b7280',
+    marginBottom: '16px'
+  };
+
+  const buttonStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '12px 24px',
+    backgroundColor: '#2563eb',
+    color: 'white',
+    borderRadius: '8px',
+    border: 'none',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease',
+    fontSize: '16px',
+    gap: '8px'
+  };
+
+  const secondaryButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: '#f3f4f6',
+    color: '#374151'
+  };
+
+  const successButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: '#16a34a'
+  };
+
+  const filePreviewStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '16px',
+    backgroundColor: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+    borderRadius: '8px',
+    marginBottom: '16px'
+  };
+
+  const fileInfoStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flex: 1
+  };
+
+  const fileDetailsStyle = {
+    flex: 1,
+    minWidth: 0
+  };
+
+  const fileNameStyle = {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#166534',
+    margin: '0 0 4px 0',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
+  };
+
+  const fileSizeStyle = {
+    fontSize: '14px',
+    color: '#16a34a',
+    margin: 0
+  };
+
+  const actionButtonsStyle = {
+    display: 'flex',
+    gap: '12px',
+    flexWrap: 'wrap'
+  };
+
+  const errorStyle = {
+    marginTop: '16px',
+    padding: '16px',
+    backgroundColor: '#fef2f2',
+    border: '1px solid #fecaca',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  };
+
+  const dataPreviewStyle = {
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    padding: '32px',
+    marginBottom: '24px'
+  };
+
+  const previewHeaderStyle = {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: '20px',
+    textAlign: 'center'
+  };
+
+  const dataFieldStyle = {
+    marginBottom: '12px',
+    padding: '8px',
+    backgroundColor: '#f9fafb',
+    borderRadius: '6px'
+  };
+
+  const dataLabelStyle = {
+    fontWeight: '600',
+    color: '#374151',
+    fontSize: '14px'
+  };
+
+  const dataValueStyle = {
+    color: '#6b7280',
+    fontSize: '14px',
+    marginTop: '4px'
+  };
+
+  return (
+    <div style={containerStyle}>
+      <div style={mainContainerStyle}>
+        {/* Header */}
+        <div style={headerStyle}>
+          <div style={headerIconStyle}>
+            <ProcessIcon style={{ color: 'white' }} />
+          </div>
+          <h1 style={titleStyle}>Processador de PDF de Ocorrências</h1>
+          <p style={subtitleStyle}>Extraia e reorganize informações de relatórios de ocorrência</p>
+        </div>
+
+        {/* Upload Area */}
+        <div style={uploadCardStyle}>
+          {!uploadedFile ? (
+            <div
+              style={uploadAreaStyle}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
+              
+              {uploading ? (
+                <div>
+                  <div style={{...iconContainerStyle, backgroundColor: '#dbeafe'}}>
+                    <UploadIcon style={{ color: '#2563eb' }} />
+                  </div>
+                  <div>
+                    <p style={uploadTextStyle}>Carregando arquivo...</p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div style={iconContainerStyle}>
+                    <FileIcon style={{ color: '#9ca3af' }} />
+                  </div>
+                  <div>
+                    <p style={uploadTextStyle}>Arraste seu PDF aqui</p>
+                    <p style={uploadSubtextStyle}>ou clique para selecionar do seu computador</p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openFileDialog();
+                      }}
+                      style={buttonStyle}
+                    >
+                      <UploadIcon style={{ width: '16px', height: '16px' }} />
+                      Selecionar Arquivo
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <div style={filePreviewStyle}>
+                <div style={fileInfoStyle}>
+                  <CheckCircleIcon style={{ color: '#16a34a' }} />
+                  <div style={fileDetailsStyle}>
+                    <p style={fileNameStyle}>{uploadedFile.name}</p>
+                    <p style={fileSizeStyle}>{formatFileSize(uploadedFile.size)} • PDF</p>
+                  </div>
+                </div>
+                <button
+                  onClick={removeFile}
+                  style={{ color: '#16a34a', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}
+                >
+                  <XIcon />
+                </button>
+              </div>
+              
+              <div style={actionButtonsStyle}>
+                <button
+                  onClick={openFileDialog}
+                  style={secondaryButtonStyle}
+                >
+                  Trocar Arquivo
+                </button>
+                <button
+                  onClick={processPDF}
+                  style={buttonStyle}
+                  disabled={processing}
+                >
+                  <ProcessIcon style={{ width: '16px', height: '16px' }} />
+                  {processing ? 'Processando...' : 'Processar PDF'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div style={errorStyle}>
+              <AlertCircleIcon style={{ color: '#dc2626', flexShrink: 0 }} />
+              <p style={{ fontSize: '14px', color: '#dc2626', margin: 0 }}>{error}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Data Preview */}
+        {extractedData && (
+          <div style={dataPreviewStyle}>
+            <h2 style={previewHeaderStyle}>Dados Extraídos do PDF</h2>
+            
+            {/* Número da Ocorrência em destaque */}
+            <div style={{
+              ...dataFieldStyle,
+              backgroundColor: '#dbeafe',
+              border: '2px solid #3b82f6',
+              marginBottom: '20px'
+            }}>
+              <div style={{...dataLabelStyle, fontSize: '16px', color: '#1d4ed8'}}>Número da Ocorrência:</div>
+              <div style={{...dataValueStyle, fontSize: '16px', fontWeight: 'bold', color: '#1e40af'}}>
+                {extractedData.numeroOcorrencia}
+              </div>
+            </div>
+            
+            <div style={dataFieldStyle}>
+              <div style={dataLabelStyle}>Data/Hora do Acionamento:</div>
+              <div style={dataValueStyle}>{extractedData.dataHora}</div>
+            </div>
+
+            <div style={dataFieldStyle}>
+              <div style={dataLabelStyle}>Natureza Inicial:</div>
+              <div style={dataValueStyle}>{extractedData.naturezaInicial}</div>
+            </div>
+
+            <div style={dataFieldStyle}>
+              <div style={dataLabelStyle}>Narrativas:</div>
+              <div style={dataValueStyle}>{extractedData.narrativas}</div>
+            </div>
+
+            <div style={dataFieldStyle}>
+              <div style={dataLabelStyle}>Localização:</div>
+              <div style={dataValueStyle}>
+                {extractedData.dadosLocalizacao1?.municipio} - {extractedData.dadosLocalizacao1?.logradouro}, {extractedData.dadosLocalizacao1?.bairro}
+              </div>
+            </div>
+
+            <div style={dataFieldStyle}>
+              <div style={dataLabelStyle}>Ponto de Referência:</div>
+              <div style={dataValueStyle}>{extractedData.dadosLocalizacao2?.pontoReferencia}</div>
+            </div>
+
+            <div style={dataFieldStyle}>
+              <div style={dataLabelStyle}>VTR / Equipamentos:</div>
+              <div style={dataValueStyle}>{extractedData.empenhos?.vtr} - {extractedData.empenhos?.equipamentos}</div>
+            </div>
+
+            <div style={dataFieldStyle}>
+              <div style={dataLabelStyle}>Horários:</div>
+              <div style={dataValueStyle}>
+                Despachado: {extractedData.empenhos?.despachado}<br/>
+                Liberado: {extractedData.empenhos?.liberado}
+              </div>
+            </div>
+
+            <div style={{...actionButtonsStyle, marginTop: '20px', justifyContent: 'center'}}>
+              <button
+                onClick={downloadReport}
+                style={successButtonStyle}
+              >
+                <DownloadIcon style={{ width: '16px', height: '16px' }} />
+                Baixar Relatório Reorganizado
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Instructions */}
+        <div style={{
+          marginTop: '32px',
+          backgroundColor: 'rgba(255, 255, 255, 0.7)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '12px',
+          padding: '24px'
+        }}>
+          <h3 style={{ fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>Como usar:</h3>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            <li style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
+              marginBottom: '8px',
+              fontSize: '14px',
+              color: '#6b7280'
+            }}>
+              <span style={{ color: '#2563eb', fontWeight: '500' }}>1.</span>
+              <span>Faça upload do PDF da ocorrência</span>
+            </li>
+            <li style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
+              marginBottom: '8px',
+              fontSize: '14px',
+              color: '#6b7280'
+            }}>
+              <span style={{ color: '#2563eb', fontWeight: '500' }}>2.</span>
+              <span>Clique em "Processar PDF" para extrair as informações</span>
+            </li>
+            <li style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
+              marginBottom: '8px',
+              fontSize: '14px',
+              color: '#6b7280'
+            }}>
+              <span style={{ color: '#2563eb', fontWeight: '500' }}>3.</span>
+              <span>Visualize os dados extraídos e baixe o relatório reorganizado</span>
+            </li>
+            <li style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
+              marginBottom: '8px',
+              fontSize: '14px',
+              color: '#6b7280'
+            }}>
+              <span style={{ color: '#2563eb', fontWeight: '500' }}>4.</span>
+              <span>O relatório será gerado seguindo a sequência: Natureza → Narrativas → Localização → Empenhos → Relatos</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      {/* CSS Animation */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: .5;
+          }
+        }
+        
+        button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        
+        button:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default App;
