@@ -367,19 +367,14 @@ const extrairNumeroOcorrencia = (text) => {
 const extrairDadosGerais = (text) => {
     // Usar lookahead mais específico ao invés de [^P]
     const naturezaInicial = extractField(/Natureza\s*Inicial:\s*(.*?)(?=\s*Prioridade\s*:)/, text);
-    const prioridade = extractField(/Prioridade:\s*(.*?)(?=\s*Ocorrência\s*Transferida\s*:)/, text);
-    const ocorrenciaTransferida = extractField(/Ocorrência\s*Transferida:\s*(.*?)(?=\s*Chamada\s*de\s*Origem)/, text);
 
-    return `<strong>Natureza Inicial:</strong> ${naturezaInicial.trim()}<br/>
-<strong>Prioridade:</strong> ${prioridade.trim()}<br/>
-<strong>Ocorrência Transferida:</strong> ${ocorrenciaTransferida.trim()}`;
+    return `<strong>Natureza Inicial:</strong> ${naturezaInicial.trim()}<br/>`;
 };
 
 const extrairNarrativas = (text) => {
-    const responsavelNarrativa = extractField(/Por:\s*([^"]+?)(?=\s*")/, text);
     const descricaoNarrativa = extractField(/"([^"]+)"/, text);
     
-    return `<strong>Por:</strong> ${responsavelNarrativa.trim()}<br/> "${descricaoNarrativa.trim()}"`; 
+    return `"${descricaoNarrativa.trim()}"`; 
 };
 
 const extrairDadosLocalizacao = (text) => {
@@ -408,21 +403,14 @@ const extrairDadosLocalizacao = (text) => {
     const pontoReferencia = extractField(/Ponto\s*de\s*Referência:\s*([^L]+?)(?=\s*Lat)/, text);
     const latLong = extractField(/Lat\s*\/\s*Long:\s*([^N]+?)(?=\s*Narrativas)/, text);
 
-    const localizacaoParte1 = `<strong>Município/UF:</strong> ${municipio.trim()}<br/>
+    const localizacaoParte1 = `
 <strong>Logradouro:</strong> ${logradouro.trim()}<br/>
-<strong>Bairro:</strong> ${bairro.trim()}<br/>
-<strong>Complemento:</strong> ${complemento.trim()}<br/>
-<strong>Tipo de Local:</strong> ${tipoLocal.trim()}`;
+<strong>Ponto de Referência:</strong> ${pontoReferencia.trim()}<br/>`;
 
-    const localizacaoParte2 = `<strong>Tipo de Via:</strong> ${tipoVia.trim()}<br/>
-<strong>Número:</strong> ${numero.trim()}<br/>
-<strong>CEP:</strong> ${cep.trim()}<br/>
-<strong>Ponto de Referência:</strong> ${pontoReferencia.trim()}<br/>
-<strong>Lat / Long:</strong> ${latLong.trim()}`;
+    
 
     return {
         parte1: localizacaoParte1,
-        parte2: localizacaoParte2
     };
 };
 
@@ -439,13 +427,12 @@ const extrairEmpenhos = (text) => {
     }
 
     // Pegar apenas a primeira parte até "Equipamento" como unidade
-    const unidade = secaoEmpenhos.split('Equipamento')[0].trim();
+    const unidade = secaoEmpenhos.split('Despachado')[0].trim();
     
     // Aplicar formatação no texto completo - ordem importa!
     let textoFormatado = secaoEmpenhos;
     
     // Formatar todos os campos na ordem correta
-    textoFormatado = textoFormatado.replace(/Equipamento\(s\):/g, '<br/><strong>Equipamento(s):</strong>');
     textoFormatado = textoFormatado.replace(/Despachado:/g, '<br/><strong>Despachado:</strong>');
     textoFormatado = textoFormatado.replace(/Em/g, '<br/><strong>Em Deslocamento:</strong>');  // ← Corrigir aqui
     textoFormatado = textoFormatado.replace(/Chegada/g, '<br/><strong>Chegada no Local:</strong>'); // ← Corrigir aqui
@@ -465,17 +452,13 @@ const extrairRelatos = (text) => {
         return 'Nenhum relato adicional';
     }
     
-    const responsavelRelato = extractField(/Relatos\s+Por:\s*([^S]+?)(?=\s*Sistema\s*de\s*Origem)/, text);
-    const sistemaOrigem = extractField(/Sistema\s*de\s*Origem:\s*([^"]+?)(?=\s*")/, text, '');
     const textoRelato = extractField(/"([^"]+)"/, text.substring(text.indexOf('Relatos')));
     
-    let resultado = `<strong>Por:</strong> ${responsavelRelato.trim()}<br/>`;
+    let resultado = '';
     
-    if (sistemaOrigem && sistemaOrigem !== 'Não informado') {
-        resultado += `<strong>Sistema de Origem:</strong> ${sistemaOrigem.trim()}<br/>`;
-    }
+  
     
-    resultado += `<strong>Relato:</strong> "${textoRelato.trim()}"`;
+    resultado += `"${textoRelato.trim()}"`;
     
     return resultado;
 };

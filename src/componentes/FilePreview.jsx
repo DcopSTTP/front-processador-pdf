@@ -1,16 +1,16 @@
-import React from 'react';
 import { CheckCircleIcon, XIcon } from 'lucide-react';
-import { ProcessIcon } from '../componentes/ProcessIcon';
-import { 
-  filePreviewStyle, 
-  fileInfoStyle, 
-  fileDetailsStyle, 
-  fileNameStyle, 
-  fileSizeStyle, 
-  actionButtonsStyle, 
-  secondaryButtonStyle, 
-  buttonStyle 
+import React from 'react';
+import {
+  actionButtonsStyle,
+  buttonStyle,
+  fileDetailsStyle,
+  fileInfoStyle,
+  fileNameStyle,
+  filePreviewStyle,
+  fileSizeStyle,
+  secondaryButtonStyle
 } from '../styles/appStyles';
+import { ProcessIcon } from './ProcessIcon';
 
 export const FilePreview = ({ 
   uploadedFile, 

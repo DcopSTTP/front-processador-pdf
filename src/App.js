@@ -1,148 +1,77 @@
-import React, { useState, useRef } from 'react';
-import { AlertCircleIcon } from 'lucide-react';
-import { ProcessIcon } from './componentes/ProcessIcon';
-import { FileUpload } from './components/FileUpload';
-import { FilePreview } from './components/FilePreview';
-import { DataPreview } from './components/DataPreview';
-import { formatFileSize } from './utils/fileUtils';
-import { createHandlers } from './utils/handlers';
-import { 
-  containerStyle, 
-  mainContainerStyle, 
-  headerStyle, 
-  headerIconStyle, 
-  titleStyle, 
-  subtitleStyle, 
-  uploadCardStyle, 
-  errorStyle, 
-  instructionsStyle, 
-  instructionItemStyle 
-} from './styles/appStyles';
+import React, { useState } from 'react';
+import Login from './screens/Login';
+import Signup from './screens/Signup';
+import EsqueciSenha from './screens/EsqueciASenha';
+import Menu from './screens/Home';
 
 function App() {
-  // Estados
-  const [dragActive, setDragActive] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const [extractedData, setExtractedData] = useState(null);
-  const [error, setError] = useState('');
-  const fileInputRef = useRef(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // ESTADO QUE CONTROLA QUAL TELA DE AUTENTICAÇÃO MOSTRAR: 'signin', 'signup' OU 'forgot'
+  const [currentAuthScreen, setCurrentAuthScreen] = useState('signin'); 
 
-  // Criar handlers
-  const {
-    handleDrag,
-    handleDrop,
-    handleFileSelect,
-    processPDF,
-    downloadReport,
-    removeFile,
-    openFileDialog
-  } = createHandlers(
-    setError,
-    setExtractedData,
-    setUploading,
-    setUploadedFile,
-    setProcessing,
-    fileInputRef,
-    setDragActive,
-    uploadedFile,
-    extractedData
-  );
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    // QUANDO FAZ LOGOUT, SEMPRE VOLTA PARA A TELA DE LOGIN (SIGNIN)
+    setCurrentAuthScreen('signin'); 
+  };
+
+  const handleSignup = () => {
+    // APÓS CRIAR CONTA COM SUCESSO, REDIRECIONA PARA LOGIN
+    setCurrentAuthScreen('signin');
+  };
+
+  // FUNÇÃO PARA IR DA TELA DE LOGIN PARA CADASTRO
+  const switchToSignup = () => {
+    setCurrentAuthScreen('signup');
+  };
+
+  // FUNÇÃO PARA IR DA TELA DE CADASTRO PARA LOGIN
+  const switchToSignin = () => {
+    setCurrentAuthScreen('signin');
+  };
+
+  // FUNÇÃO PARA IR DA TELA DE LOGIN PARA ESQUECI A SENHA
+  const switchToForgotPassword = () => {
+    setCurrentAuthScreen('forgot');
+  };
+
+  // FUNÇÃO PARA VOLTAR DA TELA ESQUECI A SENHA PARA LOGIN
+  const switchBackToLogin = () => {
+    setCurrentAuthScreen('signin');
+  };
 
   return (
-    <div style={containerStyle}>
-      <div style={mainContainerStyle}>
-        {/* Header */}
-        <div style={headerStyle}>
-          <div style={headerIconStyle}>
-            <ProcessIcon style={{ color: 'white' }} />
-          </div>
-          <h1 style={titleStyle}>Processador de PDF de Ocorrências</h1>
-          <p style={subtitleStyle}>Extraia e reorganize informações de relatórios de ocorrência</p>
-        </div>
-
-        {/* Upload Area */}
-        <div style={uploadCardStyle}>
-          {!uploadedFile ? (
-            <FileUpload
-              dragActive={dragActive}
-              uploading={uploading}
-              handleDrag={handleDrag}
-              handleDrop={handleDrop}
-              openFileDialog={openFileDialog}
-              fileInputRef={fileInputRef}
-              handleFileSelect={handleFileSelect}
-            />
-          ) : (
-            <FilePreview
-              uploadedFile={uploadedFile}
-              processing={processing}
-              formatFileSize={formatFileSize}
-              removeFile={removeFile}
-              openFileDialog={openFileDialog}
-              processPDF={processPDF}
-            />
-          )}
-
-          {error && (
-            <div style={errorStyle}>
-              <AlertCircleIcon style={{ color: '#dc2626', flexShrink: 0 }} />
-              <p style={{ fontSize: '14px', color: '#dc2626', margin: 0 }}>{error}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Data Preview */}
-        {extractedData && (
-          <DataPreview 
-            extractedData={extractedData} 
-            downloadReport={downloadReport} 
+    <>
+      {!isLoggedIn ? (
+        // SE NÃO ESTIVER LOGADO, MOSTRA UMA DAS TELAS DE AUTENTICAÇÃO
+        currentAuthScreen === 'signin' ? (
+          // TELA DE LOGIN - RECEBE FUNÇÕES PARA NAVEGAR PARA CADASTRO E ESQUECI SENHA
+          <Login 
+            onLogin={handleLogin} 
+            onSwitchToSignup={switchToSignup}
+            onSwitchToForgotPassword={switchToForgotPassword}
           />
-        )}
-
-        {/* Instructions */}
-        <div style={instructionsStyle}>
-          <h3 style={{ fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>Como usar:</h3>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            <li style={instructionItemStyle}>
-              <span style={{ color: '#2563eb', fontWeight: '500' }}>1.</span>
-              <span>Faça upload do PDF da ocorrência</span>
-            </li>
-            <li style={instructionItemStyle}>
-              <span style={{ color: '#2563eb', fontWeight: '500' }}>2.</span>
-              <span>Clique em "Processar PDF" para extrair as informações</span>
-            </li>
-            <li style={instructionItemStyle}>
-              <span style={{ color: '#2563eb', fontWeight: '500' }}>3.</span>
-              <span>Visualize os dados extraídos e baixe o relatório reorganizado</span>
-            </li>
-            <li style={instructionItemStyle}>
-              <span style={{ color: '#2563eb', fontWeight: '500' }}>4.</span>
-              <span>O relatório será gerado seguindo a sequência: Natureza → Narrativas → Localização → Empenhos → Relatos</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-      
-      {/* CSS Animation */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: .5; }
-        }
-        
-        button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-        
-        button:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-      `}</style>
-    </div>
+        ) : currentAuthScreen === 'signup' ? (
+          // TELA DE CADASTRO - RECEBE FUNÇÃO PARA VOLTAR AO LOGIN
+          <Signup 
+            onCadastro={handleSignup}
+            onSwitchToSignin={switchToSignin}
+          />
+        ) : currentAuthScreen === 'forgot' ? (
+          // TELA ESQUECI A SENHA - RECEBE FUNÇÃO PARA VOLTAR AO LOGIN
+          <EsqueciSenha 
+            onVoltar={switchBackToLogin}
+          />
+        ) : null
+      ) : (
+        // SE ESTIVER LOGADO, MOSTRA O MENU PRINCIPAL
+        <Menu onLogout={handleLogout} />
+      )}
+    </>
   );
 }
 
