@@ -510,69 +510,7 @@ function Dashboard() {
             Análise dos dados extraídos dos PDFs processados
           </p>
         </div>
-
-        {/* Filtros */}
-        <div className="filters-section">
-          <div className="filters-grid">
-            <div className="filter-group">
-              <label className="filter-label">Status</label>
-              <select 
-                className="filter-select"
-                value={filtroStatus}
-                onChange={(e) => setFiltroStatus(e.target.value)}
-              >
-                <option value="todos">Todos os status</option>
-                <option value="Em andamento">Em andamento</option>
-                <option value="Concluído">Concluído</option>
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label className="filter-label">Prioridade</label>
-              <select 
-                className="filter-select"
-                value={filtroPrioridade}
-                onChange={(e) => setFiltroPrioridade(e.target.value)}
-              >
-                <option value="todos">Todas as prioridades</option>
-                <option value="Alta">Alta</option>
-                <option value="Média">Média</option>
-                <option value="Baixa">Baixa</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Resumo Geral */}
-        <div className="card card-full">
-          <div className="summary-stats">
-            <div className="stat-item">
-              <div className="stat-number">{dadosProcessados.totalOcorrencias}</div>
-              <div className="stat-label">Total de Ocorrências</div>
-            </div>
-            
-            <div className="stat-item">
-              <div className="stat-number">
-                {dadosProcessados.status.find(s => s.status === "Em andamento")?.quantidade || 0}
-              </div>
-              <div className="stat-label">Em Andamento</div>
-            </div>
-            
-            <div className="stat-item">
-              <div className="stat-number">
-                {dadosProcessados.status.find(s => s.status === "Concluído")?.quantidade || 0}
-              </div>
-              <div className="stat-label">Concluídas</div>
-            </div>
-            
-            <div className="stat-item">
-              <div className="stat-number">
-                {dadosProcessados.prioridades.find(p => p.prioridade === "Alta")?.quantidade || 0}
-              </div>
-              <div className="stat-label">Alta Prioridade</div>
-            </div>
-          </div>
-        </div>
+        
 
         {/* Gráficos */}
         <div className="dashboard-grid">
@@ -645,36 +583,6 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Status das Ocorrências */}
-          <div className="card">
-            <h2>⏱️ Status das Ocorrências</h2>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={dadosProcessados.status}
-                    dataKey="quantidade"
-                    nameKey="status"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={80}
-                    paddingAngle={5}
-                  >
-                    {dadosProcessados.status.map((entry, index) => (
-                      <Cell 
-                        key={index} 
-                        fill={entry.status === "Concluído" ? "#10b981" : "#f59e0b"} 
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
           {/* Tipos de Relatos */}
           <div className="card">
             <h2>👥 Tipos de Relatos</h2>
@@ -697,9 +605,10 @@ function Dashboard() {
             </div>
           </div>
 
+        </div>
           {/* Evolução Temporal */}
           <div className="card">
-            <h2>📈 Evolução Temporal</h2>
+            <h2>📈 Evolução de médio do Tempo Resposta</h2>
             <div className="chart-container">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={dadosProcessados.evolucaoTemporal}>
@@ -724,30 +633,6 @@ function Dashboard() {
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
-
-        {/* Ocorrências Recentes */}
-        <div className="card">
-          <h2>📋 Ocorrências Recentes</h2>
-          <div className="recent-list">
-            {mockDataOcorrencias.slice(0, 5).map((ocorrencia) => (
-              <div key={ocorrencia.id} className="recent-item">
-                <div className="recent-info">
-                  <div className="recent-numero">#{ocorrencia.numero}</div>
-                  <div className="recent-natureza">{ocorrencia.natureza}</div>
-                  <div className="recent-local">
-                    {ocorrencia.localizacao.bairro} - {new Date(ocorrencia.dataHora).toLocaleString('pt-BR')}
-                  </div>
-                </div>
-                <div>
-                  <div className={`status-badge status-${ocorrencia.status.toLowerCase().replace(' ', '-')}`}>
-                    {ocorrencia.status}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </>
   );

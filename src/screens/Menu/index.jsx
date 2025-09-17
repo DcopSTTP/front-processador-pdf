@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ProcessadorPDF from '../ProcessadorPDF';
 import Dashboard from '../Dashboard';
-import Logo from "../../assets/Logo.svg";
+import Signup from '../Signup';
+import Logo from "../../assets/logo-sttp.webp";
+import GerenciarUsuarios from '../Users';
+import Swal from 'sweetalert2';
 
-export default function Menu({ activeMenu, setActiveMenu, onLogout }) {
+export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, currentView }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentView, setCurrentView] = useState('dashboard');
 
   const menuItems = [
     { 
@@ -26,12 +31,57 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       )
-    }
+    },
+    ...(userData?.tipoUser === 'admin' ? [{
+      id: 'usuarios',
+      label: 'Usuários',
+      icon: (
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      ),
+      path: '/usuarios'
+    }] : [])
   ];
 
-  const handleLogout = () => {
-    if (window.confirm("Tem certeza que deseja sair do sistema?")) {
+  // Mapear as rotas
+  const routes = {
+    dashboard: '/dashboard',
+    pdf: '/pdf',
+    usuarios: '/usuarios'
+  };
+
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Sair do sistema?',
+      text: 'Tem certeza que deseja fazer logout?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sim, sair',
+      cancelButtonText: 'Cancelar',
+      background: '#ffffff',
+      customClass: {
+        popup: 'swal-popup',
+        title: 'swal-title',
+        content: 'swal-content'
+      }
+    });
+
+    if (result.isConfirmed) {
+      // Mostrar mensagem de sucesso
+      await Swal.fire({
+        title: 'Logout realizado!',
+        text: 'Você foi desconectado com sucesso.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+        background: '#ffffff'
+      });
+      
       onLogout();
+      navigate('/login');
     }
   };
 
@@ -394,9 +444,7 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout }) {
         onClick={() => setMobileMenuOpen(false)}
       ></div> */}
 
-      {/* Sidebar */}
       <nav className={`sidebar ${mobileMenuOpen}`}>
-        {/* Collapse Button (Desktop) */}
         <button 
           className="collapse-button"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -433,8 +481,8 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout }) {
               <button
                 className={`menu-button ${currentView === item.id ? 'active' : ''}`}
                 onClick={() => {
-                  setCurrentView(item.id);
-                  setMobileMenuOpen(false); // Close mobile menu on selection
+                  navigate(routes[item.id] || `/${item.id}`);
+                  setMobileMenuOpen(false); 
                 }}
               >
                 <div className="menu-icon">{item.icon}</div>
@@ -452,8 +500,8 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout }) {
           {!sidebarCollapsed && (
             <div className="user-info">
               <div className="user-details">
-                <h4>João Silva</h4>
-                <p>Administrator</p>
+                <h4>{userData?.nome || 'Usuário'}</h4>
+                <p>{userData?.tipoUser === 'admin' ? 'Administrador' : 'Usuário'}</p>
               </div>
             </div>
           )}
@@ -471,6 +519,8 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout }) {
       <div style={{ marginLeft: sidebarCollapsed ? '80px' : '280px', minHeight: '100vh' }}>
         {currentView === 'pdf' && <ProcessadorPDF />}
         {currentView === 'dashboard' && <Dashboard />}
+        {currentView === 'usuarios' && <GerenciarUsuarios />}
+        {currentView === 'cadastrar-usuario' && <Signup isAdminView={true} />}
       </div>
     </>
   );

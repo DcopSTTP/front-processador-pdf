@@ -1,8 +1,11 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Logo from "../../assets/Logo.svg";
+import * as UserService from "../../service/UserService"; 
 import "./styles.css";
 
-export default function Login({ onLogin, onSwitchToSignup, onSwitchToForgotPassword }) {
+export default function Login({ onLogin, onSwitchToForgotPassword }) {
+  const navigate = useNavigate();
   const [cpf, setCpf] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -31,24 +34,59 @@ export default function Login({ onLogin, onSwitchToSignup, onSwitchToForgotPassw
     if (e) e.preventDefault();
     setError("");
 
-    // if (!validateCpf(cpf)) {
-    //   setError("CPF inválido. Digite 11 números.");
-    //   return;
-    // }
+    // Validações
+    if (!validateCpf(cpf)) {
+      setError("CPF inválido. Digite 11 números.");
+      return;
+    }
 
-    // if (!password || password.length < 6) {
-    //   setError("Senha inválida. Use pelo menos 6 caracteres.");
-    //   return;
-    // }
+    if (!password || password.length < 6) {
+      setError("Senha inválida. Use pelo menos 6 caracteres.");
+      return;
+    }
 
     setLoading(true);
 
     try {
-      await new Promise((r) => setTimeout(r, 1200));
-      console.log("Login bem-sucedido (simulado)", { cpf, password, rememberMe });
-      onLogin();
-    } catch {
-      setError("Falha ao conectar. Tente novamente.");
+      // Preparar dados para envio (remover formatação do CPF)
+      const loginData = {
+        cpf: cpf.replace(/\D/g, ""), // Remove pontos e traços
+        senha: password
+      };
+
+      // Chamar função de login do UserService
+      const { data, status } = await UserService.login(loginData);
+
+      console.log("Login bem-sucedido", { 
+        status, 
+        user: data.nome, 
+        tipoUser: data.tipoUser 
+      });
+
+      // Salvar dados da sessão no localStorage
+      localStorage.setItem("userData", JSON.stringify(data));
+      localStorage.setItem("isLoggedIn", "true");
+
+      // Salvar preferência "Lembrar-me" se necessário
+      if (rememberMe) {
+        localStorage.setItem("rememberMe", "true");
+        localStorage.setItem("savedCpf", cpf);
+        localStorage.setItem("savedPassword", password);
+      } else {
+        localStorage.removeItem("rememberMe");
+        localStorage.removeItem("savedCpf");
+        localStorage.removeItem("savedPassword");
+      }
+
+      // Chamar callback de sucesso passando os dados do usuário
+      onLogin(data);
+      
+      // Navegar para o dashboard
+      navigate('/dashboard');
+
+    } catch (error) {
+      console.error("Erro no login:", error);
+      setError(error.message || "Falha ao conectar. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -60,9 +98,23 @@ export default function Login({ onLogin, onSwitchToSignup, onSwitchToForgotPassw
     }
   };
 
+  // Verificar se existe CPF e senha salvos ao carregar o componente
+  React.useEffect(() => {
+    const savedRememberMe = localStorage.getItem("rememberMe");
+    const savedCpf = localStorage.getItem("savedCpf");
+    const savedPassword = localStorage.getItem("savedPassword");
+    
+    if (savedRememberMe === "true" && savedCpf) {
+      setCpf(savedCpf);
+      setRememberMe(true);
+      if (savedPassword) {
+        setPassword(savedPassword);
+      }
+    }
+  }, []);
+
   return (
     <>
-
       <div className="login-background">
         <div className="floating-element-1"></div>
         <div className="floating-element-2"></div>
@@ -97,6 +149,7 @@ export default function Login({ onLogin, onSwitchToSignup, onSwitchToForgotPassw
                   onKeyPress={handleKeyPress}
                   placeholder="000.000.000-00"
                   className="form-input"
+                  autoComplete="username"
                 />
               </div>
             </div>
@@ -115,6 +168,7 @@ export default function Login({ onLogin, onSwitchToSignup, onSwitchToForgotPassw
                   onKeyPress={handleKeyPress}
                   placeholder="Digite sua senha"
                   className="form-input password-input"
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -156,11 +210,10 @@ export default function Login({ onLogin, onSwitchToSignup, onSwitchToForgotPassw
                 />
                 <span className="checkbox-label">Lembrar-me</span>
               </label>
-              {/* BOTÃO ESQUECI A SENHA - CHAMA A FUNÇÃO PARA NAVEGAR PARA TELA DE RECUPERAÇÃO */}
               <button 
                 type="button"
                 className="forgot-password"
-                onClick={onSwitchToForgotPassword}
+                onClick={() => navigate('/forgot-password')}
                 style={{ background: 'none', border: 'none', padding: 0 }}
               >
                 Esqueci a senha
@@ -182,27 +235,6 @@ export default function Login({ onLogin, onSwitchToSignup, onSwitchToForgotPassw
                 "Entrar"
               )}
             </button>
-
-            {/* Divider */}
-            <div className="divider">
-              <div className="divider-line"></div>
-              <span className="divider-text">OU</span>
-              <div className="divider-line"></div>
-            </div>
-
-            {/* Sign Up Link */}
-            <div className="signup-section">
-              Não tem conta?{" "}
-              {/* BOTÃO CADASTRE-SE - CHAMA A FUNÇÃO PARA NAVEGAR PARA TELA DE CADASTRO */}
-              <button 
-                type="button"
-                className="signup-link"
-                onClick={onSwitchToSignup}
-                style={{ background: 'none', border: 'none', padding: 0 }}
-              >
-                Cadastre-se
-              </button>
-            </div>
           </div>
         </div>
       </div>

@@ -273,7 +273,7 @@ export const generateNewPDF = async (data) => {
 
     <div class="footer">
         <p>Relatório gerado automaticamente em ${new Date().toLocaleString('pt-BR')}</p>
-        <p>Sistema de Processamento de Ocorrências</p>
+        <p>STTP - Sistema de Processamento de Ocorrências</p>
     </div>
 </body>
 </html>`;

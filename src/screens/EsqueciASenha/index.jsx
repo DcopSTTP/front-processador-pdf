@@ -1,11 +1,15 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Logo from "../../assets/Logo.svg";
+import * as UserService from "../../service/UserService";
+import Swal from 'sweetalert2';
 import "./styles.css"; 
 
 export default function EsqueciSenha({ onVoltar }) {
-  const [step, setStep] = useState(1); // 1: Email/CPF, 2: Código, 3: Nova senha
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1); // 1: CPF, 2: Código, 3: Nova senha
   const [formData, setFormData] = useState({
-    emailOuCpf: "",
+    cpf: "",
     codigo: "",
     novaSenha: "",
     confirmarSenha: ""
@@ -25,8 +29,7 @@ export default function EsqueciSenha({ onVoltar }) {
   }
 
   function handleInputChange(field, value) {
-    if (field === "emailOuCpf" && /^\d/.test(value)) {
-      // Se começar com número, tratar como CPF
+    if (field === "cpf") {
       value = formatCpf(value);
     }
     
@@ -42,28 +45,42 @@ export default function EsqueciSenha({ onVoltar }) {
     setError("");
     setSuccessMessage("");
 
-    if (!formData.emailOuCpf.trim()) {
-      setError("Digite seu email ou CPF");
+    if (!formData.cpf.trim()) {
+      setError("Digite seu CPF");
       return;
     }
 
-    // Validar formato
-    const isEmail = formData.emailOuCpf.includes("@");
-    const isCpf = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(formData.emailOuCpf);
+    // Validar formato do CPF
+    const isCpf = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(formData.cpf);
 
-    if (!isEmail && !isCpf) {
-      setError("Digite um email válido ou CPF no formato 000.000.000-00");
+    if (!isCpf) {
+      setError("Digite um CPF válido no formato 000.000.000-00");
       return;
     }
 
     setLoading(true);
 
     try {
-      await new Promise(r => setTimeout(r, 1500)); // Simular envio
-      setSuccessMessage("Código de verificação enviado! Verifique seu email.");
+      const cpfSemFormatacao = formData.cpf.replace(/\D/g, "");
+      const { data, status } = await UserService.esqueciSenha(cpfSemFormatacao);
+      
+      await Swal.fire({
+        title: 'Código Enviado!',
+        text: `${data.mensagem || 'Código enviado com sucesso!'}\n\nEmail: ${data.email || ''}`,
+        icon: 'success',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#3b82f6'
+      });
+      
       setStep(2);
-    } catch {
-      setError("Erro ao enviar código. Tente novamente.");
+    } catch (error) {
+      await Swal.fire({
+        title: 'Erro!',
+        text: error.message || 'Erro ao solicitar recuperação de senha.',
+        icon: 'error',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#dc2626'
+      });
     } finally {
       setLoading(false);
     }
@@ -77,21 +94,9 @@ export default function EsqueciSenha({ onVoltar }) {
       return;
     }
 
-    setLoading(true);
-
-    try {
-      await new Promise(r => setTimeout(r, 1000));
-      // Simular validação do código
-      if (formData.codigo === "123456") {
-        setStep(3);
-      } else {
-        setError("Código inválido. Tente novamente.");
-      }
-    } catch {
-      setError("Erro ao validar código. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
+    // Apenas validação local - avança para o próximo step
+    // A validação do código será feita no backend quando redefinir a senha
+    setStep(3);
   }
 
   async function handleStep3() {
@@ -110,14 +115,26 @@ export default function EsqueciSenha({ onVoltar }) {
     setLoading(true);
 
     try {
-      await new Promise(r => setTimeout(r, 1500));
-      setSuccessMessage("Senha alterada com sucesso!");
-      // APÓS ALTERAR A SENHA COM SUCESSO, VOLTA PARA LOGIN APÓS 2 SEGUNDOS
-      setTimeout(() => {
-        onVoltar && onVoltar();
-      }, 2000);
-    } catch {
-      setError("Erro ao alterar senha. Tente novamente.");
+      const { data, status } = await UserService.redefinirSenha(formData.codigo, formData.novaSenha);
+      
+      await Swal.fire({
+        title: 'Sucesso!',
+        text: data.mensagem || 'Senha redefinida com sucesso!',
+        icon: 'success',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#22c55e'
+      });
+      
+      // Redirecionar para login
+      navigate('/login');
+    } catch (error) {
+      await Swal.fire({
+        title: 'Erro!',
+        text: error.message || 'Erro ao redefinir senha.',
+        icon: 'error',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#dc2626'
+      });
     } finally {
       setLoading(false);
     }
@@ -156,7 +173,7 @@ export default function EsqueciSenha({ onVoltar }) {
 
   function getStepSubtitle() {
     switch (step) {
-      case 1: return "Digite seu email ou CPF para receber o código de verificação";
+      case 1: return "Digite seu CPF para receber o código de verificação";
       case 2: return "Digite o código de 6 dígitos enviado para seu email";
       case 3: return "Crie uma nova senha para sua conta";
       default: return "";
@@ -194,21 +211,22 @@ export default function EsqueciSenha({ onVoltar }) {
           </div>
 
           <div>
-            {/* Step 1: Email ou CPF */}
+            {/* Step 1: CPF */}
             {step === 1 && (
               <div className="form-group">
-                <label className="form-label">Email ou CPF</label>
+                <label className="form-label">CPF</label>
                 <div className="input-container">
                   <svg className="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                   <input
                     type="text"
-                    value={formData.emailOuCpf}
-                    onChange={(e) => handleInputChange("emailOuCpf", e.target.value)}
+                    value={formData.cpf}
+                    onChange={(e) => handleInputChange("cpf", e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="seu@email.com ou 000.000.000-00"
+                    placeholder="000.000.000-00"
                     className="form-input"
+                    autoComplete="username"
                   />
                 </div>
               </div>
@@ -360,14 +378,14 @@ export default function EsqueciSenha({ onVoltar }) {
                 onClick={() => setStep(1)}
                 className="secondary-button"
               >
-                Alterar Email/CPF
+                Alterar CPF
               </button>
             )}
 
             {/* Back to Login */}
             <div className="back-link">
               {/* BOTÃO PARA VOLTAR AO LOGIN - CHAMA A FUNÇÃO RECEBIDA DO APP.JS */}
-              <button onClick={() => onVoltar && onVoltar()}>
+              <button onClick={() => navigate('/login')}>
                 ← Voltar ao Login
               </button>
             </div>
