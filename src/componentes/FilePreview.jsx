@@ -46,12 +46,6 @@ export const FilePreview = ({
       
       <div style={actionButtonsStyle}>
         <button
-          onClick={openFileDialog}
-          style={secondaryButtonStyle}
-        >
-          Trocar Arquivo
-        </button>
-        <button
           onClick={processPDF}
           style={buttonStyle}
           disabled={processing}

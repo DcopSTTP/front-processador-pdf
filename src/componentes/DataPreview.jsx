@@ -1,5 +1,5 @@
 import React from 'react';
-import { DownloadIcon } from 'lucide-react';
+import { SaveIcon } from 'lucide-react';
 import {
   dataPreviewStyle,
   previewHeaderStyle,
@@ -10,7 +10,7 @@ import {
   successButtonStyle
 } from '../styles/appStyles';
 
-export const DataPreview = ({ extractedData, downloadReport }) => {
+export const DataPreview = ({ extractedData, saveToBackend }) => {
   return (
     <div style={dataPreviewStyle}>
       <h2 style={previewHeaderStyle}>Dados Extraídos do PDF</h2>
@@ -31,63 +31,53 @@ export const DataPreview = ({ extractedData, downloadReport }) => {
       </div>
 
       <div style={dataFieldStyle}>
-        <div style={dataLabelStyle}>Dados Gerais:</div>
-        <div
-          style={dataValueStyle}
-          dangerouslySetInnerHTML={{ __html: extractedData.dadosGerais }}
-        />
+        <div>
+          <strong>Natureza Inicial:</strong>  {extractedData.naturezaInicial}
+        </div>
       </div>
 
       <div style={dataFieldStyle}>
-        <div style={dataLabelStyle}>Narrativas:</div>
-        <div
-          style={dataValueStyle}
-          dangerouslySetInnerHTML={{ __html: extractedData.narrativas }}
-        />
+        <div>
+          <strong>Narrativas:</strong>  {extractedData.narrativas}
+        </div>
       </div>
 
+
       <div style={dataFieldStyle}>
-        <div style={dataLabelStyle}>Dados de Localização:</div>
-        <div style={{ display: 'flex', gap: '20px' }}>
-          <div style={{ flex: 1 }}>
-            <div
-              style={dataValueStyle}
-              dangerouslySetInnerHTML={{ __html: extractedData.dadosLocalizacao?.parte1 }}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div
-              style={dataValueStyle}
-              dangerouslySetInnerHTML={{ __html: extractedData.dadosLocalizacao?.parte2 }}
-            />
-          </div>
+        <div style={dataLabelStyle}>Dados da Localização:</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px' }}>
+
+          <div><strong>Logradouro:</strong> {extractedData.dadosLocalizacao1?.logradouro}</div>
+          <div><strong>Ponto de Referência:</strong> {extractedData.dadosLocalizacao2?.pontoReferencia}</div>
         </div>
       </div>
 
       <div style={dataFieldStyle}>
         <div style={dataLabelStyle}>Empenhos:</div>
-        <div
-          style={dataValueStyle}
-          dangerouslySetInnerHTML={{ __html: extractedData.empenhos }}
-        >
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px' }}>
+          <div><strong>VTR:</strong> {extractedData.empenhos?.vtr}</div>
+          <div><strong>Equipamentos:</strong> {extractedData.empenhos?.equipamentos}</div>
+          <div><strong>Despachado:</strong> {extractedData.empenhos?.despachado}</div>
+          <div><strong>Em Deslocamento:</strong> {extractedData.empenhos?.deslocamento}</div>
+          <div><strong>Chegada no Local:</strong> {extractedData.empenhos?.chegadaLocal}</div>
+          <div><strong>Liberado:</strong> {extractedData.empenhos?.liberado}</div>
         </div>
       </div>
 
       <div style={dataFieldStyle}>
         <div style={dataLabelStyle}>Relatos:</div>
-        <div
-          style={dataValueStyle}
-          dangerouslySetInnerHTML={{ __html: extractedData.relatos }}
-        />
+        <div style={dataValueStyle}>
+          {extractedData.relatos}
+        </div>
       </div>
 
       <div style={{ ...actionButtonsStyle, marginTop: '20px', justifyContent: 'center' }}>
         <button
-          onClick={downloadReport}
+          onClick={saveToBackend}
           style={successButtonStyle}
         >
-          <DownloadIcon style={{ width: '16px', height: '16px' }} />
-          Baixar Relatório Reorganizado
+          <SaveIcon style={{ width: '16px', height: '16px' }} />
+          Salvar Dados no Sistema
         </button>
       </div>
     </div>

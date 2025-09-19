@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   PieChart,
   Pie,
@@ -16,8 +16,9 @@ import {
   AreaChart,
   Area
 } from "recharts";
-
-// Mock de dados baseado nos campos extraídos do processador de PDF
+import { buscarEstatisticas } from '../../service/UserService';
+import Swal from 'sweetalert2';
+// Removido mock data - agora usa dados reais da API
 const mockDataOcorrencias = [
   {
     id: 1,
@@ -180,83 +181,60 @@ const mockDataOcorrencias = [
 const COLORS = ["#1e40af", "#dc2626", "#16a34a", "#f59e0b", "#7c3aed", "#0891b2"];
 
 function Dashboard() {
-  const [filtroStatus, setFiltroStatus] = useState("todos");
-  const [filtroPrioridade, setFiltroPrioridade] = useState("todos");
+  const [estatisticas, setEstatisticas] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Processar dados para os gráficos
-  const dadosProcessados = {
-    // Total de ocorrências
-    totalOcorrencias: mockDataOcorrencias.length,
+  // Carregar estatísticas da API
+  useEffect(() => {
+    const carregarEstatisticas = async () => {
+      try {
+        setLoading(true);
+        const dados = await buscarEstatisticas();
+        setEstatisticas(dados);
+        setError(null);
+      } catch (err) {
+        console.error('Erro ao carregar estatísticas:', err);
+        setError(err.message);
+        Swal.fire({
+          icon: 'error',
+          title: 'Erro ao carregar dados',
+          text: 'Não foi possível carregar as estatísticas do dashboard.',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#ef4444'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    carregarEstatisticas();
+  }, []);
+
+  // Processar dados para os gráficos baseado na API
+  const dadosProcessados = estatisticas ? {
+    // Estatísticas principais
+    totalOcorrencias: estatisticas.totalOcorrencias || 0,
+    tempoMedioDeslocamento: estatisticas.tempoMedioDeslocamento || 0,
+    tempoMedioAtendimento: estatisticas.tempoMedioAtendimento || 0,
+    totalEmpenhosAnalisados: estatisticas.totalEmpenhosAnalisados || 0,
+
+    // Tipos de sinistro/natureza - limpar espaços excessivos
+    tiposSinistro: estatisticas.tiposSinistro?.map(item => ({
+      natureza: item.natureza?.replace(/\s+/g, ' ').trim() || 'Não informado',
+      quantidade: item.quantidade,
+      percentual: item.percentual
+    })) || [],
+
+    // Dados separados para gráficos de tempo
+    dadosDeslocamento: [
+      { categoria: 'Tempo Médio de Deslocamento', tempo: estatisticas.tempoMedioDeslocamento || 0 }
+    ],
     
-    // Natureza das ocorrências
-    naturezas: Object.entries(
-      mockDataOcorrencias.reduce((acc, curr) => {
-        acc[curr.natureza] = (acc[curr.natureza] || 0) + 1;
-        return acc;
-      }, {})
-    ).map(([tipo, quantidade]) => ({ tipo, quantidade })),
-
-    // Empenhos por viatura (todas as viaturas)
-    empenhos: Object.entries(
-      mockDataOcorrencias.reduce((acc, curr) => {
-        curr.empenhos.forEach(empenho => {
-          acc[empenho.viatura] = (acc[empenho.viatura] || 0) + 1;
-        });
-        return acc;
-      }, {})
-    ).map(([viatura, quantidade]) => ({ viatura, quantidade })),
-
-    // Ocorrências por bairro
-    bairros: Object.entries(
-      mockDataOcorrencias.reduce((acc, curr) => {
-        acc[curr.localizacao.bairro] = (acc[curr.localizacao.bairro] || 0) + 1;
-        return acc;
-      }, {})
-    ).map(([bairro, quantidade]) => ({ bairro, quantidade })),
-
-    // Status das ocorrências
-    status: Object.entries(
-      mockDataOcorrencias.reduce((acc, curr) => {
-        acc[curr.status] = (acc[curr.status] || 0) + 1;
-        return acc;
-      }, {})
-    ).map(([status, quantidade]) => ({ status, quantidade })),
-
-    // Prioridade das ocorrências
-    prioridades: Object.entries(
-      mockDataOcorrencias.reduce((acc, curr) => {
-        acc[curr.prioridade] = (acc[curr.prioridade] || 0) + 1;
-        return acc;
-      }, {})
-    ).map(([prioridade, quantidade]) => ({ prioridade, quantidade })),
-
-    // Tipos de relatos
-    tiposRelatos: Object.entries(
-      mockDataOcorrencias.reduce((acc, curr) => {
-        curr.relatos.forEach(relato => {
-          acc[relato.tipo] = (acc[relato.tipo] || 0) + 1;
-        });
-        return acc;
-      }, {})
-    ).map(([tipo, quantidade]) => ({ tipo, quantidade })),
-
-    // Evolução temporal (por dia)
-    evolucaoTemporal: Object.entries(
-      mockDataOcorrencias.reduce((acc, curr) => {
-        const data = new Date(curr.dataHora).toLocaleDateString('pt-BR');
-        acc[data] = (acc[data] || 0) + 1;
-        return acc;
-      }, {})
-    ).map(([data, quantidade]) => ({ data, quantidade }))
-      .sort((a, b) => new Date(a.data.split('/').reverse().join('-')) - new Date(b.data.split('/').reverse().join('-')))
-  };
-
-  // Filtrar dados se necessário
-  const dadosFiltrados = mockDataOcorrencias.filter(ocorrencia => {
-    const statusOk = filtroStatus === "todos" || ocorrencia.status === filtroStatus;
-    const prioridadeOk = filtroPrioridade === "todos" || ocorrencia.prioridade === filtroPrioridade;
-    return statusOk && prioridadeOk;
-  });
+    dadosAtendimento: [
+      { categoria: 'Tempo Médio de Atendimento', tempo: estatisticas.tempoMedioAtendimento || 0 }
+    ]
+  } : null;
 
   return (
     <>
@@ -510,129 +488,163 @@ function Dashboard() {
             Análise dos dados extraídos dos PDFs processados
           </p>
         </div>
-        
 
-        {/* Gráficos */}
-        <div className="dashboard-grid">
-          {/* Natureza das Ocorrências */}
-          <div className="card">
-            <h2>📋 Natureza das Ocorrências</h2>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={dadosProcessados.naturezas}
-                    dataKey="quantidade"
-                    nameKey="tipo"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    label={({tipo, quantidade}) => `${tipo}: ${quantidade}`}
-                  >
-                    {dadosProcessados.naturezas.map((entry, index) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+        {/* Loading State */}
+        {loading && (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            height: '200px',
+            fontSize: '1.2rem',
+            color: '#64748b'
+          }}>
+            Carregando estatísticas...
           </div>
+        )}
 
-          {/* Empenhos por Viatura */}
-          <div className="card">
-            <h2>🚔 Empenhos por Viatura</h2>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dadosProcessados.empenhos}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="viatura" 
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Bar dataKey="quantidade" fill="#1e40af" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+        {/* Error State */}
+        {error && !loading && (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '2rem',
+            color: '#dc2626',
+            fontSize: '1.1rem'
+          }}>
+            Erro ao carregar dados: {error}
           </div>
+        )}
 
-          {/* Ocorrências por Bairro */}
-          <div className="card">
-            <h2>📍 Ocorrências por Bairro</h2>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dadosProcessados.bairros}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="bairro" 
-                    tick={{ fontSize: 11 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Bar dataKey="quantidade" fill="#16a34a" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+        {/* Dashboard Content */}
+        {!loading && !error && dadosProcessados && (
+          <>
+            {/* Cards de Estatísticas Principais */}
+            <div className="card-full summary-stats">
+              <div className="stat-item">
+                <div className="stat-number">{dadosProcessados.totalOcorrencias}</div>
+                <div className="stat-label">Total de Ocorrências</div>
+              </div>
+              
+              <div className="stat-item">
+                <div className="stat-number">{dadosProcessados.tempoMedioDeslocamento}</div>
+                <div className="stat-label">Tempo Médio Deslocamento (min)</div>
+              </div>
+              
+              <div className="stat-item">
+                <div className="stat-number">{dadosProcessados.tempoMedioAtendimento}</div>
+                <div className="stat-label">Tempo Médio Atendimento (min)</div>
+              </div>
+              
+              <div className="stat-item">
+                <div className="stat-number">{dadosProcessados.totalEmpenhosAnalisados}</div>
+                <div className="stat-label">Total de Empenhos</div>
+              </div>
             </div>
-          </div>
 
-          {/* Tipos de Relatos */}
-          <div className="card">
-            <h2>👥 Tipos de Relatos</h2>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dadosProcessados.tiposRelatos}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="tipo" 
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Bar dataKey="quantidade" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+            {/* Gráficos */}
+            <div className="dashboard-grid">
+              {/* Tipos de Sinistro/Natureza */}
+              <div className="card">
+                <h2>📋 Distribuição por Tipo de Natureza</h2>
+                <div className="chart-container">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={dadosProcessados.tiposSinistro}
+                        dataKey="quantidade"
+                        nameKey="natureza"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        label={({ percentual }) => `${percentual}%`}
+                      >
+                        {dadosProcessados.tiposSinistro.map((entry, index) => (
+                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value, name) => [value, name]} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
 
-        </div>
-          {/* Evolução Temporal */}
-          <div className="card">
-            <h2>📈 Evolução de médio do Tempo Resposta</h2>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={dadosProcessados.evolucaoTemporal}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="data" 
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Line 
-                    type="monotone" 
-                    dataKey="quantidade" 
-                    stroke="#dc2626" 
-                    strokeWidth={3}
-                    dot={{ fill: "#dc2626", strokeWidth: 2, r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {/* Tempo Médio de Deslocamento */}
+              <div className="card">
+                <h2>🚗 Tempo Médio de Deslocamento</h2>
+                <div className="chart-container">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dadosProcessados.dadosDeslocamento}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis 
+                        dataKey="categoria" 
+                        tick={{ fontSize: 10 }}
+                        interval={0}
+                        textAnchor="middle"
+                        height={60}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12 }} 
+                        label={{ value: 'Minutos', angle: -90, position: 'insideLeft' }}
+                      />
+                      <Tooltip formatter={(value) => [`${value} minutos`, 'Tempo']} />
+                      <Bar dataKey="tempo" fill="#1e40af" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Tempo Médio de Atendimento */}
+              <div className="card">
+                <h2>⏰ Tempo Médio de Atendimento</h2>
+                <div className="chart-container">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dadosProcessados.dadosAtendimento}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis 
+                        dataKey="categoria" 
+                        tick={{ fontSize: 10 }}
+                        interval={0}
+                        textAnchor="middle"
+                        height={60}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12 }} 
+                        label={{ value: 'Minutos', angle: -90, position: 'insideLeft' }}
+                      />
+                      <Tooltip formatter={(value) => [`${value} minutos`, 'Tempo']} />
+                      <Bar dataKey="tempo" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Resumo Detalhado por Natureza */}
+              <div className="card">
+                <h2>📊 Detalhamento por Natureza</h2>
+                <div style={{ padding: '1rem 0' }}>
+                  {dadosProcessados.tiposSinistro.map((item, index) => (
+                    <div key={index} style={{ 
+                      padding: '0.75rem', 
+                      marginBottom: '0.5rem',
+                      backgroundColor: '#f8fafc',
+                      borderRadius: '8px',
+                      borderLeft: `4px solid ${COLORS[index % COLORS.length]}`
+                    }}>
+                      <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
+                        {item.natureza}
+                      </div>
+                      <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                        Quantidade: {item.quantidade} ocorrências • Representa: {item.percentual}% do total
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          </>
+        )}
+
       </div>
     </>
   );

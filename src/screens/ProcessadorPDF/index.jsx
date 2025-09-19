@@ -36,6 +36,7 @@ function ProcessadorPDF() {
     handleFileSelect,
     processPDF,
     downloadReport,
+    saveToBackend,
     removeFile,
     openFileDialog
   } = createHandlers(
@@ -97,7 +98,7 @@ function ProcessadorPDF() {
         {extractedData && (
           <DataPreview 
             extractedData={extractedData} 
-            downloadReport={downloadReport} 
+            saveToBackend={saveToBackend} 
           />
         )}
 
@@ -115,11 +116,11 @@ function ProcessadorPDF() {
             </li>
             <li style={instructionItemStyle}>
               <span style={{ color: '#2563eb', fontWeight: '500' }}>3.</span>
-              <span>Visualize os dados extraídos e baixe o relatório reorganizado</span>
+              <span>Visualize os dados extraídos e clique em "Salvar Dados no Sistema"</span>
             </li>
             <li style={instructionItemStyle}>
               <span style={{ color: '#2563eb', fontWeight: '500' }}>4.</span>
-              <span>O relatório será gerado seguindo a sequência: Natureza → Narrativas → Localização → Empenhos → Relatos</span>
+              <span>Os dados extraídos incluem: Natureza → Narrativas → Localização → Empenhos → Relatos</span>
             </li>
           </ul>
         </div>

@@ -5,6 +5,17 @@ import Signup from './screens/Signup';
 import EsqueciSenha from './screens/EsqueciASenha';
 import Menu from './screens/Menu';
 
+// Função para verificar se o token expirou (24h)
+const isTokenExpired = () => {
+  const loginTime = localStorage.getItem('loginTime');
+  if (!loginTime) return true;
+  
+  const now = new Date().getTime();
+  const twentyFourHours = 24 * 60 * 60 * 1000; // 24h em milliseconds
+  
+  return (now - parseInt(loginTime)) > twentyFourHours;
+};
+
 // Componente para proteger rotas privadas
 function PrivateRoute({ children }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -14,9 +25,25 @@ function PrivateRoute({ children }) {
     const checkAuth = () => {
       const savedUserData = localStorage.getItem('userData');
       const isLoggedIn = localStorage.getItem('isLoggedIn');
+      const accessToken = localStorage.getItem('access_token');
       
-      if (savedUserData && isLoggedIn === 'true') {
+      // Verificar se tem todos os dados necessários e se o token não expirou
+      if (savedUserData && isLoggedIn === 'true' && accessToken && !isTokenExpired()) {
         setIsAuthenticated(true);
+      } else {
+        // Se token expirou ou dados estão incompletos, limpar tudo
+        if (isTokenExpired()) {
+          console.log('Token expirado na verificação de auth, limpando sessão');
+          localStorage.removeItem('userData');
+          localStorage.removeItem('isLoggedIn');
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('loginTime');
+          localStorage.removeItem('nome');
+          localStorage.removeItem('email');
+          localStorage.removeItem('cpf');
+          localStorage.removeItem('acesso');
+        }
+        setIsAuthenticated(false);
       }
       setIsLoading(false);
     };
@@ -34,20 +61,39 @@ function PrivateRoute({ children }) {
 function App() {
   const [userData, setUserData] = useState(null);
 
+  const handleLogout = () => {
+    setUserData(null);
+    // Limpar dados da sessão
+    localStorage.removeItem('userData');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('loginTime');
+    localStorage.removeItem('nome');
+    localStorage.removeItem('email');
+    localStorage.removeItem('cpf');
+    localStorage.removeItem('acesso');
+  };
+
   // Verificar se já existe uma sessão salva ao carregar o app
   useEffect(() => {
     const savedUserData = localStorage.getItem('userData');
     const isLoggedIn = localStorage.getItem('isLoggedIn');
+    const accessToken = localStorage.getItem('access_token');
     
-    if (savedUserData && isLoggedIn === 'true') {
+    if (savedUserData && isLoggedIn === 'true' && accessToken && !isTokenExpired()) {
       try {
         const parsedUserData = JSON.parse(savedUserData);
         setUserData(parsedUserData);
       } catch (error) {
         console.error('Erro ao recuperar dados do usuário:', error);
-        localStorage.removeItem('userData');
-        localStorage.removeItem('isLoggedIn');
+        handleLogout(); // Usar a função de logout para limpar tudo
       }
+    } else {
+      // Token expirou ou dados incompletos
+      if (isTokenExpired()) {
+        console.log('Token expirado ao carregar app, fazendo logout');
+      }
+      handleLogout(); // Limpar sessão
     }
   }, []);
 
@@ -56,14 +102,6 @@ function App() {
     // Salvar dados da sessão no localStorage
     localStorage.setItem('userData', JSON.stringify(data));
     localStorage.setItem('isLoggedIn', 'true');
-  };
-
-  const handleLogout = () => {
-    setUserData(null);
-    // Limpar dados da sessão
-    localStorage.removeItem('userData');
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('access_token');
   };
 
   const handleSignup = () => {
@@ -104,6 +142,33 @@ function App() {
           element={
             <PrivateRoute>
               <Menu onLogout={handleLogout} userData={userData} currentView="pdf" />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/relatorio"
+          element={
+            <PrivateRoute>
+              <Menu onLogout={handleLogout} userData={userData} currentView="relatorio" />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/perfil"
+          element={
+            <PrivateRoute>
+              <Menu onLogout={handleLogout} userData={userData} currentView="perfil" />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/detalhes-ocorrencia"
+          element={
+            <PrivateRoute>
+              <Menu onLogout={handleLogout} userData={userData} currentView="detalhes-ocorrencia" />
             </PrivateRoute>
           }
         />

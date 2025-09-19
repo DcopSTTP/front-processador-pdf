@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug - Esqueci Senha</title>
+</head>
+<body>
+    <h1>Teste de Redirecionamento - Esqueci a Senha</h1>
+    
+    <h2>Passos para testar:</h2>
+    <ol>
+        <li>Abra o console do navegador (F12)</li>
+        <li>Acesse http://localhost:3000/forgot-password</li>
+        <li>Digite um CPF válido: 123.456.789-10</li>
+        <li>Clique em "Enviar Código"</li>
+        <li>Observe os logs no console</li>
+    </ol>
+    
+    <h2>O que foi corrigido:</h2>
+    <ul>
+        <li>Adicionado logs de debug no componente EsqueciSenha</li>
+        <li>Corrigido interceptor do HttpService para não verificar token em rotas públicas</li>
+        <li>Adicionado formulário com preventDefault para evitar submissão indesejada</li>
+        <li>Corrigido tipo dos botões para evitar comportamento padrão</li>
+        <li>Melhorado tratamento de erros no UserService</li>
+    </ul>
+    
+    <h2>Possíveis causas do problema:</h2>
+    <ul>
+        <li>Token expirado causando redirecionamento automático</li>
+        <li>Interceptor do axios redirecionando em caso de erro</li>
+        <li>Formulário sendo submetido sem preventDefault</li>
+    </ul>
+    
+    <h2>Como verificar no console:</h2>
+    <pre>
+    1. Procure por: "Iniciando processo de recuperação de senha"
+    2. Procure por: "Enviando requisição para esqueci senha"
+    3. Procure por: "Token expirado" (não deve aparecer)
+    4. Verifique erros de rede na aba Network
+    </pre>
+</body>
+</html>

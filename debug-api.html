@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug API - Ocorrências</title>
+</head>
+<body>
+    <h1>Debug API - Ocorrências</h1>
+    
+    <h2>Problema identificado:</h2>
+    <p>O erro indica que o backend está procurando por um arquivo "index.html" em '/Users/lohuamalima/Desktop/sttp/back-processador-pdf/uploads/index.html'</p>
+    
+    <h2>Possíveis causas:</h2>
+    <ul>
+        <li>O backend pode estar configurado para servir arquivos estáticos em vez de rotas API</li>
+        <li>A rota /ocorrencias/filtro pode não estar registrada corretamente</li>
+        <li>Middleware de arquivos estáticos pode estar interceptando a requisição</li>
+    </ul>
+    
+    <h2>Correções implementadas:</h2>
+    <ul>
+        <li>✅ Corrigida construção da URL com query parameters</li>
+        <li>✅ Adicionados logs detalhados para debug</li>
+        <li>✅ Melhor tratamento de erro 404</li>
+        <li>✅ Mensagem específica para endpoint não encontrado</li>
+    </ul>
+    
+    <h2>Para testar:</h2>
+    <ol>
+        <li>Abra o console do navegador (F12)</li>
+        <li>Acesse a tela de Relatórios</li>
+        <li>Verifique os logs no console:
+            <ul>
+                <li>"Buscando ocorrências com filtros"</li>
+                <li>"URL da requisição"</li>
+                <li>"Query string"</li>
+            </ul>
+        </li>
+        <li>Se der erro, verificar se a URL está correta: http://localhost:3335/ocorrencias/filtro</li>
+    </ol>
+    
+    <h2>Verificações no backend:</h2>
+    <ul>
+        <li>Confirmar se a rota está registrada: GET /ocorrencias/filtro</li>
+        <li>Verificar se não há middleware de static files interferindo</li>
+        <li>Testar direto no Insomnia/Postman</li>
+    </ul>
+    
+    <button onclick="testarAPI()">Testar API</button>
+    <div id="resultado"></div>
+    
+    <script>
+        async function testarAPI() {
+            const resultado = document.getElementById('resultado');
+            resultado.innerHTML = 'Testando...';
+            
+            try {
+                const response = await fetch('http://localhost:3335/ocorrencias/filtro');
+                const data = await response.json();
+                resultado.innerHTML = `
+                    <h3>Sucesso!</h3>
+                    <p>Status: ${response.status}</p>
+                    <p>Dados: ${JSON.stringify(data, null, 2)}</p>
+                `;
+            } catch (error) {
+                resultado.innerHTML = `
+                    <h3>Erro:</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

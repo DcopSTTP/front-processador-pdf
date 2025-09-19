@@ -5,13 +5,16 @@ import Dashboard from '../Dashboard';
 import Signup from '../Signup';
 import Logo from "../../assets/logo-sttp.webp";
 import GerenciarUsuarios from '../Users';
+import Relatorio from '../Relatorio';
+import Perfil from '../Perfil';
+import DetalhesOcorrencia from '../DetalhesOcorrencia';
 import Swal from 'sweetalert2';
 
 export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, currentView }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [selectedOcorrenciaId, setSelectedOcorrenciaId] = useState(null);
 
   const menuItems = [
     { 
@@ -32,6 +35,15 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
         </svg>
       )
     },
+    { 
+      id: 'relatorio', 
+      label: 'Relatório', 
+      icon: (
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      )
+    },
     ...(userData?.tipoUser === 'admin' ? [{
       id: 'usuarios',
       label: 'Usuários',
@@ -48,6 +60,7 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
   const routes = {
     dashboard: '/dashboard',
     pdf: '/pdf',
+    relatorio: '/relatorio',
     usuarios: '/usuarios'
   };
 
@@ -88,306 +101,309 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
   return (
     <>
       <style>{`
-        .sidebar {
+        .navbar {
           position: fixed;
           top: 0;
           left: 0;
-          height: 100vh;
-          width: ${sidebarCollapsed ? '80px' : '280px'};
-          background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+          right: 0;
+          height: 80px;
+          background: linear-gradient(90deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
           color: white;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
           z-index: 1000;
           display: flex;
-          flex-direction: column;
-          overflow: hidden;
+          align-items: center;
+          padding: 0 2rem;
         }
 
-        .sidebar.mobile-open {
-          transform: translateX(0);
-        }
-
-        .sidebar-header {
-          padding: 2rem 1.5rem 1rem;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        .nav-container {
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
           display: flex;
           align-items: center;
-          gap: 1rem;
+          justify-content: space-between;
+        }
+
+        .nav-left {
+          display: flex;
+          align-items: center;
+          gap: 2rem;
         }
 
         .logo-container {
           background: rgba(255, 255, 255, 0.15);
-          padding: 0.75rem;
+          padding: 0.75rem 1rem;
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          min-width: 48px;
           backdrop-filter: blur(10px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .logo-icon {
-          width: 24px;
-          height: 24px;
-          color: white;
+        .logo-image {
+          max-width: 60px;
+          max-height: 60px;
+          width: auto;
+          height: auto;
+          object-fit: contain;
+          display: block;
         }
 
-        .brand-text {
-          font-size: 1.5rem;
-          font-weight: 700;
-          opacity: ${sidebarCollapsed ? '0' : '1'};
-          transition: opacity 0.3s ease;
-          white-space: nowrap;
-        }
-
-        .collapse-button {
-          position: absolute;
-          top: 1rem;
-          right: 4px;
-          background: #1e40af;
-          border: none;
-          color: white;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
+        .nav-menu {
           display: flex;
           align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-          transition: all 0.2s ease;
-          z-index: 1001;
-        }
-
-        .collapse-button:hover {
-          background: #1d4ed8;
-          transform: scale(1.1);
-        }
-
-        .menu-list {
-          flex: 1;
-          padding: 1.5rem 0;
-          overflow-y: auto;
+          gap: 1rem;
         }
 
         .menu-item {
-          margin: 0.5rem 1rem;
           position: relative;
         }
 
         .menu-button {
-          width: 100%;
-          padding: 1rem 1.25rem;
-          background: ${sidebarCollapsed ? 'transparent' : 'rgba(255, 255, 255, 0.1)'};
+          padding: 0.5rem 1rem;
+          background: transparent;
           border: none;
           color: white;
-          border-radius: 12px;
+          border-radius: 8px;
           cursor: pointer;
           transition: all 0.2s ease;
           display: flex;
           align-items: center;
-          gap: 1rem;
-          font-size: 0.95rem;
+          gap: 0.5rem;
+          font-size: 0.9rem;
           font-weight: 500;
-          text-align: left;
           position: relative;
-          overflow: hidden;
         }
 
         .menu-button:hover {
-          background: rgba(255, 255, 255, 0.15);
-          transform: translateX(4px);
+          background: rgba(255, 255, 255, 0.1);
         }
 
         .menu-button.active {
           background: rgba(255, 255, 255, 0.2);
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-          border-left: 4px solid #60a5fa;
+          border-bottom: 3px solid #60a5fa;
         }
 
-        .menu-button.active::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(90deg, rgba(96, 165, 250, 0.2), transparent);
-          pointer-events: none;
-        }
 
         .menu-icon {
-          min-width: 20px;
+          width: 18px;
+          height: 18px;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
         .menu-label {
-          opacity: ${sidebarCollapsed ? '0' : '1'};
-          transition: opacity 0.3s ease;
           white-space: nowrap;
         }
 
-        .tooltip {
-          position: absolute;
-          left: calc(100% + 12px);
-          top: 50%;
-          transform: translateY(-50%);
-          background: #1f2937;
-          color: white;
-          padding: 0.5rem 0.75rem;
-          border-radius: 6px;
-          font-size: 0.875rem;
-          white-space: nowrap;
-          opacity: 0;
-          visibility: hidden;
-          transition: all 0.2s ease;
-          z-index: 1000;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .tooltip::before {
-          content: '';
-          position: absolute;
-          left: -4px;
-          top: 50%;
-          transform: translateY(-50%);
-          border: 4px solid transparent;
-          border-right-color: #1f2937;
-        }
-
-        .menu-item:hover .tooltip {
-          opacity: ${sidebarCollapsed ? '1' : '0'};
-          visibility: ${sidebarCollapsed ? 'visible' : 'hidden'};
-        }
-
-        .sidebar-footer {
-          padding: 1.5rem;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        .nav-right {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
         }
 
         .user-info {
           display: flex;
           align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          gap: 0.5rem;
-          margin-bottom: 1rem;
-          opacity: ${sidebarCollapsed ? '0' : '1'};
-          transition: opacity 0.3s ease;
-          text-align: center;
+          gap: 0.75rem;
         }
 
         .user-details {
-          text-align: center;
+          cursor: pointer;
+          transition: opacity 0.2s ease;
+        }
+
+        .user-details:hover {
+          opacity: 0.8;
         }
 
         .user-details h4 {
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           font-weight: 600;
-          margin-bottom: 0.25rem;
-          text-align: center;
+          margin: 0;
         }
 
         .user-details p {
           font-size: 0.75rem;
           opacity: 0.8;
-          text-align: center;
+          margin: 0;
         }
 
         .logout-button {
-          width: 100%;
-          padding: 0.875rem 1.25rem;
-          background: rgba(220, 38, 38, 0.8);
+          padding: 0.5rem 1rem;
+          background: rgba(220, 38, 38, 0.9);
           border: none;
           color: white;
-          border-radius: 12px;
+          border-radius: 8px;
           cursor: pointer;
           transition: all 0.2s ease;
           display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 0.75rem;
-          font-size: 0.9rem;
+          gap: 0.5rem;
+          font-size: 0.875rem;
           font-weight: 600;
-          backdrop-filter: blur(10px);
         }
 
         .logout-button:hover {
           background: rgba(220, 38, 38, 1);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+          box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
         }
 
         .logout-icon {
-          width: 18px;
-          height: 18px;
+          width: 16px;
+          height: 16px;
         }
 
-        .logout-text {
-          opacity: ${sidebarCollapsed ? '0' : '1'};
-          transition: opacity 0.3s ease;
+        .main-content {
+          margin-top: 80px;
+          min-height: calc(100vh - 80px);
         }
 
-        .mobile-toggle {
-          display: none;
+        .mobile-menu-dropdown {
           position: fixed;
-          top: 1rem;
-          left: 1rem;
-          z-index: 1001;
-          background: #1e40af;
+          top: 80px;
+          left: 0;
+          right: 0;
+          background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+          color: white;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          z-index: 999;
+          transform: translateY(-100%);
+          transition: transform 0.3s ease;
+          display: none;
+        }
+
+        .mobile-menu-dropdown.open {
+          transform: translateY(0);
+          display: block;
+        }
+
+        .mobile-menu-item {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mobile-menu-item:last-child {
+          border-bottom: none;
+        }
+
+        .mobile-menu-link {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1rem 1.5rem;
+          color: white;
+          text-decoration: none;
+          transition: background 0.2s ease;
+          width: 100%;
+          border: none;
+          background: transparent;
+          font-size: 1rem;
+          cursor: pointer;
+        }
+
+        .mobile-menu-link:hover,
+        .mobile-menu-link.active {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .mobile-menu-link.active {
+          border-left: 4px solid #60a5fa;
+          background: rgba(255, 255, 255, 0.15);
+        }
+
+        .mobile-user-section {
+          padding: 1rem 1.5rem;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(0, 0, 0, 0.1);
+        }
+
+        .mobile-user-info {
+          margin-bottom: 1rem;
+          text-align: center;
+        }
+
+        .mobile-user-info h4 {
+          margin: 0 0 0.25rem 0;
+          font-size: 1rem;
+          font-weight: 600;
+        }
+
+        .mobile-user-info p {
+          margin: 0;
+          font-size: 0.875rem;
+          opacity: 0.8;
+        }
+
+        .mobile-logout-button {
+          width: 100%;
+          padding: 0.75rem;
+          background: rgba(220, 38, 38, 0.9);
           border: none;
           color: white;
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
+          border-radius: 8px;
           cursor: pointer;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-          transition: all 0.2s ease;
+          font-size: 0.9rem;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
         }
 
-        .mobile-toggle:hover {
-          background: #1d4ed8;
-          transform: scale(1.05);
+        .mobile-logout-button:hover {
+          background: rgba(220, 38, 38, 1);
         }
 
-        .overlay {
-          display: none;
+        .mobile-overlay {
           position: fixed;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
           background: rgba(0, 0, 0, 0.5);
-          z-index: 999;
+          z-index: 998;
+          display: none;
         }
-        .logo-image {
-          max-width: 80px;
-          max-height: 80px;
-          width: auto;
-          height: auto;
-          object-fit: contain;
+
+        .mobile-overlay.open {
+          display: block;
         }
-      
-        .logo-container {
-          display: flex;
-          justify-content: center;
-          margin-bottom: 1.5rem;
-          padding: 1rem;
+
+        @media (max-width: 768px) {
+          .navbar {
+            padding: 0 1rem;
+          }
+
+          .nav-menu {
+            display: none;
+          }
+
+          .user-info {
+            display: none;
+          }
+
+          .mobile-menu-button {
+            display: block;
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            cursor: pointer;
+          }
         }
-      
-        .logo {
-          background: transparent; 
-          padding: 0; 
-          border-radius: 0; 
-          box-shadow: none; 
-          transition: all 0.3s ease;
-        }
-      
-        .logo:hover {
-          transform: scale(1.05);
+
+        @media (min-width: 769px) {
+          .mobile-menu-button {
+            display: none;
+          }
+
+          .mobile-menu-dropdown {
+            display: none !important;
+          }
         }
 
         // @media (max-width: 768px) {
@@ -444,81 +460,133 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
         onClick={() => setMobileMenuOpen(false)}
       ></div> */}
 
-      <nav className={`sidebar ${mobileMenuOpen}`}>
-        <button 
-          className="collapse-button"
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-        >
-          {sidebarCollapsed ? (
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          ) : (
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          )}
-        </button>
-
-        {/* Header */}
-        <div className="sidebar-header">
-          <div className="logo-container">
-          <img 
-                  src={Logo} 
-                  alt="Logo do Sistema" 
-                  className="logo-image"
-                />
-          </div>
-          {!sidebarCollapsed && (
-            <div className="brand-text"></div>
-          )}
-        </div>
-
-        {/* Menu Items */}
-        <div className="menu-list">
-          {menuItems.map((item) => (
-            <div key={item.id} className="menu-item">
-              <button
-                className={`menu-button ${currentView === item.id ? 'active' : ''}`}
-                onClick={() => {
-                  navigate(routes[item.id] || `/${item.id}`);
-                  setMobileMenuOpen(false); 
-                }}
-              >
-                <div className="menu-icon">{item.icon}</div>
-                <span className="menu-label">{item.label}</span>
-                {sidebarCollapsed && (
-                  <div className="tooltip">{item.label}</div>
-                )}
-              </button>
+      <nav className="navbar">
+        <div className="nav-container">
+          {/* Left side - Logo and Menu Items */}
+          <div className="nav-left">
+            <div className="logo-container">
+              <img 
+                src={Logo} 
+                alt="Logo do Sistema" 
+                className="logo-image"
+              />
             </div>
-          ))}
-        </div>
+            
+            <div className="nav-menu">
+              {menuItems.map((item) => (
+                <div key={item.id} className="menu-item">
+                  <button
+                    className={`menu-button ${currentView === item.id ? 'active' : ''}`}
+                    onClick={() => {
+                      navigate(routes[item.id] || `/${item.id}`);
+                      setMobileMenuOpen(false); 
+                    }}
+                  >
+                    <div className="menu-icon">{item.icon}</div>
+                    <span className="menu-label">{item.label}</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        {/* Footer */}
-        <div className="sidebar-footer">
-          {!sidebarCollapsed && (
+          {/* Right side - User info and Logout */}
+          <div className="nav-right">
             <div className="user-info">
-              <div className="user-details">
+              <div 
+                className="user-details"
+                onClick={() => navigate('/perfil')}
+                title="Clique para editar perfil"
+              >
                 <h4>{userData?.nome || 'Usuário'}</h4>
                 <p>{userData?.tipoUser === 'admin' ? 'Administrador' : 'Usuário'}</p>
               </div>
             </div>
-          )}
-          
-          <button className="logout-button" onClick={handleLogout}>
-            <svg className="logout-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span className="logout-text">Sair</span>
-          </button>
+            
+            <button className="logout-button" onClick={handleLogout}>
+              <svg className="logout-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>Sair</span>
+            </button>
+
+            {/* Mobile menu button */}
+            <button 
+              className="mobile-menu-button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
       </nav>
 
+      {/* Mobile Overlay */}
+      <div 
+        className={`mobile-overlay ${mobileMenuOpen ? 'open' : ''}`}
+        onClick={() => setMobileMenuOpen(false)}
+      ></div>
+
+      {/* Mobile Menu Dropdown */}
+      <div className={`mobile-menu-dropdown ${mobileMenuOpen ? 'open' : ''}`}>
+        {/* Menu Items */}
+        {menuItems.map((item) => (
+          <div key={item.id} className="mobile-menu-item">
+            <button
+              className={`mobile-menu-link ${currentView === item.id ? 'active' : ''}`}
+              onClick={() => {
+                navigate(routes[item.id] || `/${item.id}`);
+                setMobileMenuOpen(false);
+              }}
+            >
+              <div className="menu-icon">{item.icon}</div>
+              <span>{item.label}</span>
+            </button>
+          </div>
+        ))}
+
+        {/* User Section */}
+        <div className="mobile-user-section">
+          <div 
+            className="mobile-user-info"
+            onClick={() => {
+              navigate('/perfil');
+              setMobileMenuOpen(false);
+            }}
+            style={{ cursor: 'pointer' }}
+            title="Clique para editar perfil"
+          >
+            <h4>{userData?.nome || 'Usuário'}</h4>
+            <p>{userData?.tipoUser === 'admin' ? 'Administrador' : 'Usuário'}</p>
+          </div>
+          
+          <button className="mobile-logout-button" onClick={handleLogout}>
+            <svg className="logout-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Sair</span>
+          </button>
+        </div>
+      </div>
+
       {/* Main Content */}
-      <div style={{ marginLeft: sidebarCollapsed ? '80px' : '280px', minHeight: '100vh' }}>
+      <div className="main-content">
         {currentView === 'pdf' && <ProcessadorPDF />}
         {currentView === 'dashboard' && <Dashboard />}
+        {currentView === 'relatorio' && <Relatorio onVerDetalhes={(id) => {
+          setSelectedOcorrenciaId(id);
+          navigate('/detalhes-ocorrencia');
+        }} />}
+        {currentView === 'detalhes-ocorrencia' && <DetalhesOcorrencia ocorrenciaId={selectedOcorrenciaId} onBack={() => navigate('/relatorio')} />}
+        {currentView === 'perfil' && <Perfil />}
         {currentView === 'usuarios' && <GerenciarUsuarios />}
         {currentView === 'cadastrar-usuario' && <Signup isAdminView={true} />}
       </div>

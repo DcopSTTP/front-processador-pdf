@@ -59,10 +59,14 @@ export default function EsqueciSenha({ onVoltar }) {
     }
 
     setLoading(true);
+    console.log('Iniciando processo de recuperação de senha para CPF:', formData.cpf);
 
     try {
       const cpfSemFormatacao = formData.cpf.replace(/\D/g, "");
+      console.log('CPF sem formatação:', cpfSemFormatacao);
+      
       const { data, status } = await UserService.esqueciSenha(cpfSemFormatacao);
+      console.log('Resposta do servidor:', { data, status });
       
       await Swal.fire({
         title: 'Código Enviado!',
@@ -74,6 +78,7 @@ export default function EsqueciSenha({ onVoltar }) {
       
       setStep(2);
     } catch (error) {
+      console.error('Erro ao solicitar recuperação:', error);
       await Swal.fire({
         title: 'Erro!',
         text: error.message || 'Erro ao solicitar recuperação de senha.',
@@ -210,7 +215,7 @@ export default function EsqueciSenha({ onVoltar }) {
             <div className={`step-dot ${step === 3 ? 'active' : ''}`}></div>
           </div>
 
-          <div>
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }}>
             {/* Step 1: CPF */}
             {step === 1 && (
               <div className="form-group">
@@ -350,7 +355,7 @@ export default function EsqueciSenha({ onVoltar }) {
 
             {/* Submit Button */}
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={loading}
               className="submit-button"
             >
@@ -375,6 +380,7 @@ export default function EsqueciSenha({ onVoltar }) {
             {/* Back to Step 1 */}
             {step === 2 && (
               <button
+                type="button"
                 onClick={() => setStep(1)}
                 className="secondary-button"
               >
@@ -385,11 +391,17 @@ export default function EsqueciSenha({ onVoltar }) {
             {/* Back to Login */}
             <div className="back-link">
               {/* BOTÃO PARA VOLTAR AO LOGIN - CHAMA A FUNÇÃO RECEBIDA DO APP.JS */}
-              <button onClick={() => navigate('/login')}>
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate('/login');
+                }}
+              >
                 ← Voltar ao Login
               </button>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     </>

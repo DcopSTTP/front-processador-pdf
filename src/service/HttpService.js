@@ -6,6 +6,66 @@ const instance = axios.create({
   timeout: 30000,
 });
 
+// Função para verificar se o token expirou (24h)
+const isTokenExpired = () => {
+  const loginTime = localStorage.getItem('loginTime');
+  if (!loginTime) return true;
+  
+  const now = new Date().getTime();
+  const twentyFourHours = 24 * 60 * 60 * 1000; // 24h em milliseconds
+  
+  return (now - parseInt(loginTime)) > twentyFourHours;
+};
+
+// Função para fazer logout automático
+const forceLogout = () => {
+  localStorage.removeItem('userData');
+  localStorage.removeItem('isLoggedIn');
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('loginTime');
+  localStorage.removeItem('nome');
+  localStorage.removeItem('email');
+  localStorage.removeItem('cpf');
+  localStorage.removeItem('acesso');
+  
+  // Redirecionar para login
+  window.location.href = '/login';
+};
+
+// Interceptor para respostas - detectar token expirado
+instance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Se receber 401 (Unauthorized) ou 403 (Forbidden), token provavelmente expirou
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      console.log('Token expirado ou inválido, fazendo logout automático');
+      forceLogout();
+      return Promise.reject(new Error('Sessão expirada. Você será redirecionado para o login.'));
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para requisições - verificar token antes de enviar
+instance.interceptors.request.use(
+  (config) => {
+    // Lista de URLs que não precisam de autenticação
+    const publicUrls = ['/auth/signin', '/auth/esqueci-a-senha', '/auth/redefinir-senha', '/auth/cadastro'];
+    const isPublicUrl = publicUrls.some(url => config.url.includes(url));
+    
+    // Verificar se o token expirou antes de fazer qualquer requisição
+    if (!isPublicUrl && isTokenExpired()) {
+      console.log('Token expirado por tempo (24h), fazendo logout automático');
+      forceLogout();
+      return Promise.reject(new Error('Sessão expirada'));
+    }
+    
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export const api = async (endpoint, metodo, body, newHeaders) => {
   const token = localStorage.getItem('access_token');
 

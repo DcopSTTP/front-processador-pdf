@@ -57,6 +57,72 @@ export const extractDataFromPDF = async (file) => {
     }
 };
 
+// Função para transformar dados extraídos no formato esperado pelo backend
+export const formatDataForBackend = (extractedData) => {
+    const backendData = {
+        numeroOcorrencia: extractedData.numeroOcorrencia || '',
+        natureza: extractedData.naturezaInicial || '',
+        narrativas: extractedData.narrativas || '',
+        localizacao: {
+            logradouro: extractedData.dadosLocalizacao1?.logradouro || '',
+            bairro: extractedData.dadosLocalizacao1?.bairro || '',
+            pontoReferencia: extractedData.dadosLocalizacao2?.pontoReferencia || '',
+            lat: extractedData.dadosLocalizacao2?.latitude || '',
+            long: extractedData.dadosLocalizacao2?.longitude || ''
+        },
+        empenhos: [],
+        relatos: ''
+    };
+
+    // Processar empenhos se existirem dados
+    if (extractedData.empenhos && extractedData.empenhos.vtr !== 'Ocorrência Não Empenhada') {
+        const empenhoData = {
+            vtr: extractedData.empenhos.vtr || '',
+            equipamentos: extractedData.empenhos.equipamentos || '',
+            despachado: extractedData.empenhos.despachado || '',
+            deslocamento: extractedData.empenhos.deslocamento || '',
+            chegadaLocal: extractedData.empenhos.chegadaLocal || '',
+            liberado: extractedData.empenhos.liberado || ''
+        };
+        backendData.empenhos.push(empenhoData);
+    }
+
+    // Processar relatos - agora como string simples
+    if (extractedData.relatos && extractedData.relatos !== 'Nenhum relato adicional') {
+        backendData.relatos = extractedData.relatos;
+    }
+
+    return backendData;
+};
+
+export const saveDataToBackend = async (extractedData) => {
+    try {
+        // Importar o service dinamicamente para evitar problemas de dependência circular
+        const { salvarOcorrencia } = await import('../service/UserService');
+        
+        // Transformar dados para o formato esperado pelo backend
+        const formattedData = formatDataForBackend(extractedData);
+        
+        // Log para debug - mostrar como ficou o JSON
+        console.log('=== DADOS FORMATADOS PARA O BACKEND ===');
+        console.log(JSON.stringify(formattedData, null, 2));
+        console.log('==========================================');
+
+        // Usar o service para manter a padronização e incluir o token automaticamente
+        const result = await salvarOcorrencia(formattedData);
+        
+        // Log da resposta do backend
+        console.log('=== RESPOSTA DO BACKEND ===');
+        console.log(JSON.stringify(result, null, 2));
+        console.log('============================');
+        
+        return result;
+    } catch (error) {
+        console.error('Erro ao salvar dados:', error);
+        throw new Error('Falha ao salvar dados no sistema: ' + error.message);
+    }
+};
+
 export const generateNewPDF = async (data) => {
     try {
         const htmlContent = `
@@ -303,11 +369,14 @@ export const generateNewPDF = async (data) => {
 export const parseOccurrenceData = (text) => {
     console.log('=== INÍCIO DA EXTRAÇÃO ===');
     
+    const dadosLocalizacaoExtraidos = extrairDadosLocalizacao(text);
+    
     const result = {
         numeroOcorrencia: extrairNumeroOcorrencia(text),
-        dadosGerais: extrairDadosGerais(text),
+        naturezaInicial: extrairDadosGerais(text),
         narrativas: extrairNarrativas(text),
-        dadosLocalizacao: extrairDadosLocalizacao(text),
+        dadosLocalizacao1: dadosLocalizacaoExtraidos.dadosLocalizacao1,
+        dadosLocalizacao2: dadosLocalizacaoExtraidos.dadosLocalizacao2,
         empenhos: extrairEmpenhos(text),
         relatos: extrairRelatos(text)
     };
@@ -368,7 +437,7 @@ const extrairDadosGerais = (text) => {
     // Usar lookahead mais específico ao invés de [^P]
     const naturezaInicial = extractField(/Natureza\s*Inicial:\s*(.*?)(?=\s*Prioridade\s*:)/, text);
 
-    return `<strong>Natureza Inicial:</strong> ${naturezaInicial.trim()}<br/>`;
+    return naturezaInicial.trim();
 };
 
 const extrairNarrativas = (text) => {
@@ -400,50 +469,133 @@ const extrairDadosLocalizacao = (text) => {
     const tipoVia = extractField(/Tipo\s*de\s*Via:\s*([^N]+?)(?=\s*Número:)/, text);
     const numero = extractField(/Número:\s*([^C]+?)(?=\s*CEP:)/, text);
     const cep = extractField(/CEP:\s*([^P]+?)(?=\s*Ponto\s*de\s*Referência:)/, text);
-    const pontoReferencia = extractField(/Ponto\s*de\s*Referência:\s*([^L]+?)(?=\s*Lat)/, text);
-    const latLong = extractField(/Lat\s*\/\s*Long:\s*([^N]+?)(?=\s*Narrativas)/, text);
-
-    const localizacaoParte1 = `
-<strong>Logradouro:</strong> ${logradouro.trim()}<br/>
-<strong>Ponto de Referência:</strong> ${pontoReferencia.trim()}<br/>`;
-
+    const pontoReferencia = extractField(/Ponto\s*de\s*Referência:\s*([^\r\n]+?)(?=\s*Lat\s*\/\s*Long:)/, text);
     
+    // Extrair Lat/Long com formato específico: -7.220458900000001 , -7.220458900000001
+    const latLongCompleto = extractField(/Lat\s*\/\s*Long:\s*([^N]+?)(?=\s*Narrativas)/, text);
+    
+    // Separar latitude e longitude
+    let latitude = 'Não informado';
+    let longitude = 'Não informado';
+    
+    if (latLongCompleto !== 'Não informado') {
+        // Buscar padrão: número , espaço , número
+        const coordenadasMatch = latLongCompleto.match(/([-]?\d+\.?\d*)\s*,\s*([-]?\d+\.?\d*)/);
+        if (coordenadasMatch) {
+            latitude = coordenadasMatch[1].trim();
+            longitude = coordenadasMatch[2].trim();
+        }
+    }
+
+    console.log('Dados de localização extraídos:', {
+        municipio: municipio.trim(),
+        logradouro: logradouro.trim(),
+        bairro: bairro.trim(),
+        complemento: complemento.trim(),
+        tipoLocal: tipoLocal.trim(),
+        tipoVia: tipoVia.trim(),
+        numero: numero.trim(),
+        cep: cep.trim(),
+        pontoReferencia: pontoReferencia.trim(),
+        latitude,
+        longitude,
+        latLongCompleto
+    });
 
     return {
-        parte1: localizacaoParte1,
+        // Dados principais (primeira seção)
+        dadosLocalizacao1: {
+            municipio: municipio.trim(),
+            logradouro: logradouro.trim(),
+            bairro: bairro.trim(),
+            complemento: complemento.trim(),
+            tipoLocal: tipoLocal.trim()
+        },
+        // Dados detalhados (segunda seção)
+        dadosLocalizacao2: {
+            tipoVia: tipoVia.trim(),
+            numero: numero.trim(),
+            cep: cep.trim(),
+            pontoReferencia: pontoReferencia.trim(),
+            latitude,
+            longitude
+        }
     };
 };
 
 const extrairEmpenhos = (text) => {
     // Verificar se não há empenho
     if (text.includes('Ocorrência Não Empenhada')) {
-        return '<strong>Status:</strong> Ocorrência Não Empenhada';
+        return {
+            vtr: 'Ocorrência Não Empenhada',
+            equipamentos: 'N/A',
+            despachado: 'N/A',
+            deslocamento: 'N/A',
+            chegadaLocal: 'N/A',
+            liberado: 'N/A'
+        };
     }
 
     const secaoEmpenhos = extractField(/Empenhos:?\s+(.*?)(?=\s*Dados)/s, text);
     
+    console.log('=== DEBUG EMPENHOS ===');
+    console.log('Seção empenhos extraída:', secaoEmpenhos);
+    console.log('======================');
+    
     if (secaoEmpenhos === 'Não informado') {
-        return '<strong>Status:</strong> Nenhum empenho encontrado';
+        return {
+            vtr: 'Nenhum empenho encontrado',
+            equipamentos: 'N/A',
+            despachado: 'N/A',
+            deslocamento: 'N/A',
+            chegadaLocal: 'N/A',
+            liberado: 'N/A'
+        };
     }
 
-    // Pegar apenas a primeira parte até "Equipamento" como unidade
+    // Extrair VTR e equipamentos da primeira parte
     const unidade = secaoEmpenhos.split('Despachado')[0].trim();
+    const vtrMatch = unidade.match(/VTR\s*([^\s]+)/);
+    const equipMatch = unidade.match(/Equipamento[^:]*:\s*([^D]+)/);
     
-    // Aplicar formatação no texto completo - ordem importa!
-    let textoFormatado = secaoEmpenhos;
+    // Extrair tempos dos empenhos - regex mais específica para despachado
+    let despachado = extractField(/Despachado:\s*([^\r\n]+?)(?=\s*Liberado)/, secaoEmpenhos);
+    if (despachado === 'Não informado') {
+        despachado = extractField(/Despachado:\s*([^\r\n]+?)(?=\s*Em\s*Deslocamento)/, secaoEmpenhos);
+    }
+    if (despachado === 'Não informado') {
+        despachado = extractField(/Despachado:\s*([^\r\n]+)/, secaoEmpenhos);
+    }
     
-    // Formatar todos os campos na ordem correta
-    textoFormatado = textoFormatado.replace(/Despachado:/g, '<br/><strong>Despachado:</strong>');
-    textoFormatado = textoFormatado.replace(/Em/g, '<br/><strong>Em Deslocamento:</strong>');  // ← Corrigir aqui
-    textoFormatado = textoFormatado.replace(/Chegada/g, '<br/><strong>Chegada no Local:</strong>'); // ← Corrigir aqui
-    textoFormatado = textoFormatado.replace(/Liberado:/g, '<br/><strong>Liberado:</strong>');
+    let deslocamento = extractField(/Em\s*Deslocamento:\s*([^\r\n]+?)(?=\s*Chegada)/, secaoEmpenhos);
+    if (deslocamento === 'Não informado') {
+        deslocamento = extractField(/Em\s*Deslocamento:\s*([^\r\n]+)/, secaoEmpenhos);
+    }
+    
+    let chegadaLocal = extractField(/Chegada\s*no\s*Local:\s*([^\r\n]+?)(?=\s*Liberado)/, secaoEmpenhos);
+    if (chegadaLocal === 'Não informado') {
+        chegadaLocal = extractField(/Chegada\s*no\s*Local:\s*([^\r\n]+)/, secaoEmpenhos);
+    }
+    
+    let liberado = extractField(/Liberado:\s*([^\r\n]+)/, secaoEmpenhos);
 
-    // Montar resultado final com a unidade em negrito
-    const resultado = `<strong>${unidade}</strong><br/>${textoFormatado.substring(unidade.length)}`;
+    console.log('Empenhos extraídos:', {
+        vtr: vtrMatch ? vtrMatch[1].trim() : unidade,
+        equipamentos: equipMatch ? equipMatch[1].trim() : 'N/A',
+        despachado: despachado.trim(),
+        deslocamento: deslocamento.trim(),
+        chegadaLocal: chegadaLocal.trim(),
+        liberado: liberado.trim()
+    });
     
-    console.log('Resultado final formatado:', resultado); // Debug temporário
-    
-    return resultado.trim();
+    return {
+        vtr: vtrMatch ? vtrMatch[1].trim() : unidade,
+        equipamentos: equipMatch ? equipMatch[1].trim() : 'N/A',
+        despachado: despachado.trim(),
+        deslocamento: deslocamento.trim(),
+        chegadaLocal: chegadaLocal.trim(),
+        liberado: liberado.trim()
+    };
 };
 
 const extrairRelatos = (text) => {

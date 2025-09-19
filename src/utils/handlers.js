@@ -1,6 +1,7 @@
 // Handlers para o App component
 import { validateFile } from './fileUtils';
-import { extractDataFromPDF, generateNewPDF } from './pdfUtils';
+import { extractDataFromPDF, generateNewPDF, saveDataToBackend } from './pdfUtils';
+import Swal from 'sweetalert2';
 
 export const createHandlers = (
   setError,
@@ -91,6 +92,62 @@ export const createHandlers = (
     }
   };
 
+  const saveToBackend = async () => {
+    if (!extractedData) return;
+    
+    try {
+      // Mostrar loading
+      Swal.fire({
+        title: 'Salvando dados...',
+        text: 'Por favor, aguarde enquanto os dados são enviados para o sistema.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      const result = await saveDataToBackend(extractedData);
+      console.log('Dados salvos com sucesso:', result);
+      
+      // Extrair informações do resultado para exibir
+      const ocorrencia = result.data || result;
+      const numeroOcorrencia = ocorrencia.numeroOcorrencia || 'N/A';
+      const dataHora = ocorrencia.createdAt ? new Date(ocorrencia.createdAt).toLocaleString('pt-BR') : 'N/A';
+      
+      // Mostrar sucesso com detalhes
+      Swal.fire({
+        icon: 'success',
+        title: 'Ocorrência Salva!',
+        html: `
+          <div style="text-align: left; margin: 10px 0;">
+            <p><strong>Número:</strong> ${numeroOcorrencia}</p>
+            <p><strong>Salva em:</strong> ${dataHora}</p>
+            <p><strong>Status:</strong> Processada e armazenada no sistema</p>
+          </div>
+        `,
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#10b981',
+        width: '500px'
+      });
+      
+    } catch (err) {
+      console.error('Erro ao salvar:', err);
+      
+      // Mostrar erro
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro ao salvar',
+        text: err.message || 'Ocorreu um erro ao tentar salvar os dados no sistema.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ef4444'
+      });
+      
+      setError('Erro ao salvar dados: ' + err.message);
+    }
+  };
+
   const removeFile = () => {
     setUploadedFile(null);
     setExtractedData(null);
@@ -114,6 +171,7 @@ export const createHandlers = (
     handleFile,
     processPDF,
     downloadReport,
+    saveToBackend,
     removeFile,
     openFileDialog
   };
