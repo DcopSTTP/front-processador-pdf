@@ -8,7 +8,6 @@ import {
   fileNameStyle,
   filePreviewStyle,
   fileSizeStyle,
-  secondaryButtonStyle
 } from '../styles/appStyles';
 import { ProcessIcon } from './ProcessIcon';
 

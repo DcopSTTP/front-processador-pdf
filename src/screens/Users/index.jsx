@@ -17,7 +17,6 @@ export default function GerenciarUsuarios({ onBack, onAddUser }) {
   const [error, setError] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Carregar usuários da API
   useEffect(() => {
     const carregarUsuarios = async () => {
       setLoading(true);
@@ -25,7 +24,6 @@ export default function GerenciarUsuarios({ onBack, onAddUser }) {
         const usuariosData = await UserService.buscarUsuarios();
         setUsuarios(usuariosData);
       } catch (error) {
-        console.error('Erro ao carregar usuários:', error);
         setError(error.message || "Erro ao carregar usuários");
       } finally {
         setLoading(false);
@@ -55,7 +53,6 @@ export default function GerenciarUsuarios({ onBack, onAddUser }) {
       try {
         await UserService.alterarTipoUsuario(id, isAdmin);
         
-        // Atualizar estado local
         setUsuarios(prev => prev.map(user => 
           user.id === id 
             ? { ...user, tipoUser: novoTipo }
@@ -100,7 +97,6 @@ export default function GerenciarUsuarios({ onBack, onAddUser }) {
       try {
         await UserService.alterarStatusUsuario(id, novoStatus);
         
-        // Atualizar estado local
         setUsuarios(prev => prev.map(user => 
           user.id === id 
             ? { ...user, ativo: novoStatus }
@@ -169,7 +165,6 @@ export default function GerenciarUsuarios({ onBack, onAddUser }) {
       backgroundColor: '#f3f4f6',
       padding: '2rem'
     }}>
-      {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <h1 style={{ 
           fontSize: '2rem', 
@@ -182,7 +177,6 @@ export default function GerenciarUsuarios({ onBack, onAddUser }) {
         </p>
       </div>
 
-      {/* Controles de busca e filtro */}
       <div className="controles-container" style={{ marginBottom: '2rem' }}>
         <div className="controles-header">
           <div className="busca-container">
@@ -254,7 +248,6 @@ export default function GerenciarUsuarios({ onBack, onAddUser }) {
         </div>
       )}
 
-      {/* Lista de usuários */}
       <div className="usuarios-lista">
         {usuariosFiltrados.length === 0 ? (
           <div className="empty-state">
@@ -310,7 +303,6 @@ export default function GerenciarUsuarios({ onBack, onAddUser }) {
         )}
       </div>
 
-      {/* Botão Voltar */}
       {onBack && (
         <button
           onClick={onBack}

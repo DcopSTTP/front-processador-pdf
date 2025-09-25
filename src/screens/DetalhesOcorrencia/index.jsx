@@ -5,12 +5,10 @@ import { buscarOcorrenciaPorId } from '../../service/UserService';
 import Swal from 'sweetalert2';
 
 function DetalhesOcorrencia({ ocorrenciaId, onBack }) {
-  // Estados
   const [loading, setLoading] = useState(true);
   const [ocorrencia, setOcorrencia] = useState(null);
   const [error, setError] = useState('');
 
-  // Carregar dados da ocorrência
   useEffect(() => {
     if (ocorrenciaId) {
       carregarOcorrencia();
@@ -24,7 +22,6 @@ function DetalhesOcorrencia({ ocorrenciaId, onBack }) {
       const dadosOcorrencia = await buscarOcorrenciaPorId(ocorrenciaId);
       setOcorrencia(dadosOcorrencia);
     } catch (err) {
-      console.error('Erro ao carregar detalhes da ocorrência:', err);
       setError(err.message);
       Swal.fire({
         icon: 'error',
@@ -98,16 +95,12 @@ function DetalhesOcorrencia({ ocorrenciaId, onBack }) {
     <div style={detalhesStyles.container}>
       <div style={detalhesStyles.mainContainer}>
         
-        {/* Header */}
         <div style={detalhesStyles.header}>
           <h1 style={detalhesStyles.title}>Detalhes da Ocorrência</h1>
           <p style={detalhesStyles.subtitle}>Informações completas do registro</p>
         </div>
 
-        {/* Card de Detalhes */}
         <div style={detalhesStyles.dataPreview}>
-          
-          {/* Número da Ocorrência em destaque */}
           <div style={detalhesStyles.highlightField}>
             <div style={detalhesStyles.highlightLabel}>
               Número da Ocorrência:
@@ -117,7 +110,6 @@ function DetalhesOcorrencia({ ocorrenciaId, onBack }) {
             </div>
           </div>
 
-          {/* Informações Básicas */}
           <div style={detalhesStyles.sectionTitle}>Informações</div>
           
           <div style={detalhesStyles.dataField}>
@@ -128,19 +120,18 @@ function DetalhesOcorrencia({ ocorrenciaId, onBack }) {
 
           <div style={detalhesStyles.dataField}>
             <div style={detalhesStyles.dataRow}>
-              <strong>Data de Criação:</strong> {formatarData(ocorrencia.createdAt)}
+              <strong>Data do Despacho:</strong> {ocorrencia.empenhos?.[0]?.despachado || 'Não informada'}
             </div>
           </div>
 
-          {ocorrencia.updatedAt !== ocorrencia.createdAt && (
+          {ocorrencia.createdAt && (
             <div style={detalhesStyles.dataField}>
               <div style={detalhesStyles.dataRow}>
-                <strong>Última Atualização:</strong> {formatarData(ocorrencia.updatedAt)}
+                <strong>Data de Registro no Sistema:</strong> {formatarData(ocorrencia.createdAt)}
               </div>
             </div>
           )}
 
-          {/* Narrativas */}
           <div style={detalhesStyles.dataField}>
             <div style={detalhesStyles.dataLabel}>Narrativas:</div>
             <div style={detalhesStyles.dataValue}>
@@ -148,7 +139,6 @@ function DetalhesOcorrencia({ ocorrenciaId, onBack }) {
             </div>
           </div>
 
-          {/* Relatos */}
           {ocorrencia.relatos && (
             <div style={detalhesStyles.dataField}>
               <div style={detalhesStyles.dataLabel}>Relatos:</div>
@@ -158,7 +148,6 @@ function DetalhesOcorrencia({ ocorrenciaId, onBack }) {
             </div>
           )}
 
-          {/* Localização */}
           <div style={detalhesStyles.sectionTitle}>
             <MapPinIcon style={{ width: '18px', height: '18px', marginRight: '8px' }} />
             Dados da Localização
@@ -173,7 +162,6 @@ function DetalhesOcorrencia({ ocorrenciaId, onBack }) {
             </div>
           </div>
 
-          {/* Empenhos */}
           <div style={detalhesStyles.sectionTitle}>
             <ClockIcon style={{ width: '18px', height: '18px', marginRight: '8px' }} />
             Empenhos ({ocorrencia.empenhos?.length || 0})
@@ -201,7 +189,6 @@ function DetalhesOcorrencia({ ocorrenciaId, onBack }) {
             </div>
           )}
 
-          {/* Botão Voltar */}
           {onBack && (
             <div style={detalhesStyles.actionButtons}>
               <button onClick={onBack} style={detalhesStyles.backButton}>

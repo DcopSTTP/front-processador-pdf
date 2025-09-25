@@ -95,5 +95,4 @@ app.get('/files', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
-  console.log(`Arquivos serão salvos em: ${uploadsDir}`);
 });

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './screens/Login';
-import Signup from './screens/Signup';
+import React, { useEffect, useState } from 'react';
+import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import EsqueciSenha from './screens/EsqueciASenha';
+import Login from './screens/Login';
 import Menu from './screens/Menu';
 
 // Função para verificar se o token expirou (24h)
@@ -33,7 +33,6 @@ function PrivateRoute({ children }) {
       } else {
         // Se token expirou ou dados estão incompletos, limpar tudo
         if (isTokenExpired()) {
-          console.log('Token expirado na verificação de auth, limpando sessão');
           localStorage.removeItem('userData');
           localStorage.removeItem('isLoggedIn');
           localStorage.removeItem('access_token');
@@ -85,15 +84,26 @@ function App() {
         const parsedUserData = JSON.parse(savedUserData);
         setUserData(parsedUserData);
       } catch (error) {
-        console.error('Erro ao recuperar dados do usuário:', error);
         handleLogout(); // Usar a função de logout para limpar tudo
       }
     } else {
       // Token expirou ou dados incompletos
       if (isTokenExpired()) {
-        console.log('Token expirado ao carregar app, fazendo logout');
+        // Mostrar alerta de sessão expirada
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sessão Expirada',
+          text: 'Sua sessão expirou. Faça login novamente para continuar.',
+          confirmButtonText: 'Fazer Login',
+          confirmButtonColor: '#3b82f6',
+          allowOutsideClick: false,
+          allowEscapeKey: false
+        }).then(() => {
+          handleLogout(); // Só fazer logout após o usuário confirmar
+        });
+      } else {
+        handleLogout(); // Limpar sessão para outros casos
       }
-      handleLogout(); // Limpar sessão
     }
   }, []);
 

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { SearchIcon, FilterIcon, EyeIcon, CalendarIcon, MapPinIcon, AlertTriangleIcon } from 'lucide-react';
-import { relatoriosStyles } from './styles';
-import { buscarOcorrenciasFiltradas } from '../../service/UserService';
+import { AlertTriangleIcon, CalendarIcon, EyeIcon, FilterIcon, MapPinIcon, SearchIcon } from 'lucide-react';
+import React, { useState } from 'react';
 import Swal from 'sweetalert2';
+import { buscarOcorrenciasFiltradas } from '../../service/UserService';
+import { relatoriosStyles } from './styles';
 
 function RelatoriosOcorrencias({ onVerDetalhes }) {
-  // Estados
+  
   const [loading, setLoading] = useState(false);
   const [ocorrencias, setOcorrencias] = useState([]);
   const [filtros, setFiltros] = useState({
@@ -18,7 +18,6 @@ function RelatoriosOcorrencias({ onVerDetalhes }) {
   const [showFilters, setShowFilters] = useState(true);
 
   const [error, setError] = useState(null);
-  // Não carregar dados automaticamente - apenas quando aplicar filtros
 
   const carregarOcorrencias = async (filtrosAplicados = {}) => {
     setLoading(true);
@@ -27,7 +26,6 @@ function RelatoriosOcorrencias({ onVerDetalhes }) {
       const dados = await buscarOcorrenciasFiltradas(filtrosAplicados);
       setOcorrencias(dados);
     } catch (err) {
-      console.error('Erro ao carregar ocorrências:', err);
       setError(err.message);
       Swal.fire({
         icon: 'error',
@@ -65,6 +63,14 @@ function RelatoriosOcorrencias({ onVerDetalhes }) {
   };
 
   const formatarData = (dataString) => {
+    if (!dataString) return 'Não informada';
+    
+    if (dataString.includes('/') && dataString.includes(':')) {
+      const [dataParte, horaParte] = dataString.split(' ');
+      const [dia, mes, ano] = dataParte.split('/');
+      return `${dia}/${mes}/${ano}`;
+    }
+    
     return new Date(dataString).toLocaleDateString('pt-BR');
   };
 
@@ -78,7 +84,6 @@ function RelatoriosOcorrencias({ onVerDetalhes }) {
     <div style={relatoriosStyles.container}>
       <div style={relatoriosStyles.mainContainer}>
 
-        {/* Filtros */}
         <div style={relatoriosStyles.filterCard}>
           <div style={relatoriosStyles.filterHeader}>
             <h3 style={relatoriosStyles.filterTitle}>
@@ -97,7 +102,6 @@ function RelatoriosOcorrencias({ onVerDetalhes }) {
             <div style={relatoriosStyles.filterContent}>
               <div style={relatoriosStyles.filterGrid}>
                 
-                {/* Data Inicial */}
                 <div style={relatoriosStyles.filterField}>
                   <label style={relatoriosStyles.filterLabel}>
                     <CalendarIcon style={{ width: '16px', height: '16px', marginRight: '6px' }} />
@@ -111,7 +115,6 @@ function RelatoriosOcorrencias({ onVerDetalhes }) {
                   />
                 </div>
 
-                {/* Data Final */}
                 <div style={relatoriosStyles.filterField}>
                   <label style={relatoriosStyles.filterLabel}>
                     <CalendarIcon style={{ width: '16px', height: '16px', marginRight: '6px' }} />
@@ -125,7 +128,6 @@ function RelatoriosOcorrencias({ onVerDetalhes }) {
                   />
                 </div>
 
-                {/* Natureza */}
                 <div style={relatoriosStyles.filterField}>
                   <label style={relatoriosStyles.filterLabel}>
                     <AlertTriangleIcon style={{ width: '16px', height: '16px', marginRight: '6px' }} />
@@ -140,7 +142,6 @@ function RelatoriosOcorrencias({ onVerDetalhes }) {
                   />
                 </div>
 
-                {/* Logradouro */}
                 <div style={relatoriosStyles.filterField}>
                   <label style={relatoriosStyles.filterLabel}>
                     <MapPinIcon style={{ width: '16px', height: '16px', marginRight: '6px' }} />
@@ -154,8 +155,6 @@ function RelatoriosOcorrencias({ onVerDetalhes }) {
                     style={relatoriosStyles.filterInput}
                   />
                 </div>
-
-                {/* Bairro */}
                 <div style={relatoriosStyles.filterField}>
                   <label style={relatoriosStyles.filterLabel}>
                     <MapPinIcon style={{ width: '16px', height: '16px', marginRight: '6px' }} />
@@ -191,8 +190,6 @@ function RelatoriosOcorrencias({ onVerDetalhes }) {
             </div>
           )}
         </div>
-
-        {/* Tabela de Resultados */}
         <div style={relatoriosStyles.tableCard}>
           <div style={relatoriosStyles.tableHeader}>
             <h3 style={relatoriosStyles.tableTitle}>
@@ -236,7 +233,7 @@ function RelatoriosOcorrencias({ onVerDetalhes }) {
                           </span>
                         </td>
                         <td style={relatoriosStyles.tableCell}>
-                          {formatarData(ocorrencia.createdAt)}
+                          {formatarData(ocorrencia.dataDespacho || ocorrencia.createdAt)}
                         </td>
                         <td style={relatoriosStyles.tableCell}>
                           <span style={relatoriosStyles.naturezaBadge}>

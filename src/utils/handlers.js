@@ -1,7 +1,7 @@
 // Handlers para o App component
+import Swal from 'sweetalert2';
 import { validateFile } from './fileUtils';
 import { extractDataFromPDF, generateNewPDF, saveDataToBackend } from './pdfUtils';
-import Swal from 'sweetalert2';
 
 export const createHandlers = (
   setError,
@@ -12,7 +12,8 @@ export const createHandlers = (
   fileInputRef,
   setDragActive,
   uploadedFile,
-  extractedData
+  extractedData,
+  onViewDetails
 ) => {
   // Event Handlers
   const handleDrag = (e) => {
@@ -109,15 +110,14 @@ export const createHandlers = (
       });
 
       const result = await saveDataToBackend(extractedData);
-      console.log('Dados salvos com sucesso:', result);
       
       // Extrair informações do resultado para exibir
       const ocorrencia = result.data || result;
       const numeroOcorrencia = ocorrencia.numeroOcorrencia || 'N/A';
       const dataHora = ocorrencia.createdAt ? new Date(ocorrencia.createdAt).toLocaleString('pt-BR') : 'N/A';
       
-      // Mostrar sucesso com detalhes
-      Swal.fire({
+      // Mostrar sucesso com detalhes e opção de visualizar
+      const resultado = await Swal.fire({
         icon: 'success',
         title: 'Ocorrência Salva!',
         html: `
@@ -127,13 +127,24 @@ export const createHandlers = (
             <p><strong>Status:</strong> Processada e armazenada no sistema</p>
           </div>
         `,
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#10b981',
-        width: '500px'
+        showCancelButton: true,
+        confirmButtonText: '👁️ Visualizar Dados',
+        cancelButtonText: 'OK',
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#10b981',
+        width: '500px',
+        reverseButtons: true
       });
+
+      // Se o usuário escolheu visualizar os dados
+      if (resultado.isConfirmed && ocorrencia.id) {
+        // Chamar callback para navegar para detalhes (será passado pelo componente pai)
+        if (onViewDetails) {
+          onViewDetails(ocorrencia.id);
+        }
+      }
       
     } catch (err) {
-      console.error('Erro ao salvar:', err);
       
       // Mostrar erro
       Swal.fire({

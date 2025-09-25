@@ -1,5 +1,4 @@
 export const relatoriosStyles = {
-    // Container principal
     container: {
       minHeight: '100vh',
       backgroundColor: '#f3f4f6',
@@ -15,7 +14,6 @@ export const relatoriosStyles = {
       gap: '24px'
     },
   
-    // Header
     header: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
@@ -52,7 +50,6 @@ export const relatoriosStyles = {
       fontWeight: '500'
     },
   
-    // Card de Filtros
     filterCard: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
@@ -162,7 +159,6 @@ export const relatoriosStyles = {
       transition: 'all 0.2s ease'
     },
   
-    // Card da Tabela
     tableCard: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
@@ -257,7 +253,6 @@ export const relatoriosStyles = {
       transition: 'all 0.2s ease'
     },
   
-    // Estados de loading e vazio
     loadingContainer: {
       padding: '60px 20px',
       textAlign: 'center',
@@ -282,7 +277,6 @@ export const relatoriosStyles = {
     }
   };
   
-  // CSS Animations (adicionar no head do documento ou arquivo CSS separado)
   export const relatoriosCSS = `
     @keyframes slideDown {
       from {

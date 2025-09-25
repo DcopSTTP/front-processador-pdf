@@ -7,23 +7,18 @@ export const login = async (body) => {
       const { data, status } = await HttpService.post('/auth/signin', body);
   
       if (status === 200 || status === 201) {
-        // Salvar dados do usuário no localStorage
         localStorage.setItem("nome", data.nome);
         localStorage.setItem("email", data.email || "");
         localStorage.setItem("cpf", data.cpf);
-  
-        // Salvar token de acesso
+        if (data.id) {
+          localStorage.setItem("userId", data.id);
+        }
         if (data.access_token) {
           localStorage.setItem("access_token", data.access_token);
-          // Salvar timestamp do login para controle de expiração
           localStorage.setItem("loginTime", new Date().getTime().toString());
-          console.log('Token salvo:', data.access_token);
         }
-  
-        // Salvar tipo de usuário (nível de acesso)
         if (data.tipoUser) {
           localStorage.setItem("acesso", data.tipoUser);
-          console.log('Acesso salvo:', data.tipoUser);
         }
       } else {
         throw new Error('Falha na autenticação');
@@ -31,15 +26,15 @@ export const login = async (body) => {
   
       return { data, status };
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Erro ao fazer login');
+      const customError = new Error(error.response?.data?.message || 'Erro ao fazer login');
+      customError.status = error.response?.status;
+      throw customError;
     }
   }
 export const esqueciSenha = async (cpf) => {
     try {
         const body = { cpf };
-        console.log('Enviando requisição para esqueci senha:', body);
         const { data, status } = await HttpService.postWithoutAuth('/auth/esqueci-a-senha', body);
-        console.log('>>> Esqueci senha response:', data, status);
         
         if (status === 200 || status === 201) {
             return { data, status };
@@ -47,9 +42,6 @@ export const esqueciSenha = async (cpf) => {
             throw new Error('Falha na solicitação de recuperação');
         }
     } catch (error) {
-        console.error('Erro completo ao solicitar recuperação de senha:', error);
-        console.error('Response data:', error.response?.data);
-        console.error('Response status:', error.response?.status);
         throw new Error(error.response?.data?.message || error.message || 'Erro ao solicitar recuperação de senha');
     }
 }
@@ -57,7 +49,6 @@ export const redefinirSenha = async (resetCode, newPassword) => {
     try {
         const body = { resetCode, newPassword };
         const { data, status } = await HttpService.postWithoutAuth('/auth/redefinir-senha', body);
-        console.log('>>> Redefinir senha response:', data, status);
         
         if (status === 200 || status === 201) {
             return { data, status };
@@ -65,7 +56,6 @@ export const redefinirSenha = async (resetCode, newPassword) => {
             throw new Error('Falha na redefinição de senha');
         }
     } catch (error) {
-        console.error('Erro ao redefinir senha:', error);
         throw new Error(error.response?.data?.message || 'Erro ao redefinir senha');
     }
 }
@@ -74,23 +64,19 @@ export const cadastro = async (userData) => {
         const { data, status } = await HttpService.post('/auth/cadastro', userData);
         
         if (status === 200 || status === 201) {
-            console.log('Usuário cadastrado com sucesso:', data);
             return { data, status };
         } else {
             throw new Error('Falha no cadastro');
         }
     } catch (error) {
-        console.error('Erro no cadastro:', error);
         throw new Error(error.response?.data?.message || 'Erro ao cadastrar usuário');
     }
 };
 export const buscarUsuarios = async () => {
     try {
         const data = await HttpService.get('/user');
-        console.log('Usuários carregados:', data);
         return data;
     } catch (error) {
-        console.error('Erro ao buscar usuários:', error);
         throw new Error(error.message || 'Erro ao carregar usuários');
     }
 };
@@ -99,13 +85,11 @@ export const alterarTipoUsuario = async (userId, isAdmin) => {
         const { data, status } = await HttpService.put(`/user/admin/${userId}`, { isAdmin });
         
         if (status === 200 || status === 201) {
-            console.log('Tipo de usuário alterado com sucesso:', data);
             return { data, status };
         } else {
             throw new Error('Falha ao alterar tipo de usuário');
         }
     } catch (error) {
-        console.error('Erro ao alterar tipo de usuário:', error);
         throw new Error(error.response?.data?.message || 'Erro ao alterar tipo de usuário');
     }
 };
@@ -114,13 +98,11 @@ export const alterarStatusUsuario = async (userId, ativo) => {
         const { data, status } = await HttpService.put(`/user/status/${userId}`, { ativo });
         
         if (status === 200 || status === 201) {
-            console.log('Status do usuário alterado com sucesso:', data);
             return { data, status };
         } else {
             throw new Error('Falha ao alterar status do usuário');
         }
     } catch (error) {
-        console.error('Erro ao alterar status do usuário:', error);
         throw new Error(error.response?.data?.message || 'Erro ao alterar status do usuário');
     }
 };
@@ -131,13 +113,11 @@ export const salvarOcorrencia = async (ocorrenciaData) => {
         const { data, status } = await HttpService.post('/ocorrencias', ocorrenciaData);
         
         if (status === 200 || status === 201) {
-            console.log('Ocorrência salva com sucesso:', data);
             return { data, status };
         } else {
             throw new Error('Falha ao salvar ocorrência');
         }
     } catch (error) {
-        console.error('Erro ao salvar ocorrência:', error);
         throw new Error(error.response?.data?.message || 'Erro ao salvar ocorrência');
     }
 };
@@ -145,24 +125,64 @@ export const salvarOcorrencia = async (ocorrenciaData) => {
 export const buscarEstatisticas = async () => {
     try {
         const data = await HttpService.get('/ocorrencias/statistics');
-        console.log('Estatísticas carregadas:', data);
         return data;
     } catch (error) {
-        console.error('Erro ao buscar estatísticas:', error);
         throw new Error(error.message || 'Erro ao carregar estatísticas');
+    }
+};
+
+export const buscarEstatisticasMensais = async (ano, mes) => {
+    try {
+        const body = { ano, mes };
+        const { data } = await HttpService.post('/ocorrencias/statistics/monthly', body);
+        return data;
+    } catch (error) {
+        throw new Error(error.response?.data?.message || error.message || 'Erro ao carregar estatísticas mensais');
+    }
+};
+
+// usuário
+export const buscarPerfilUsuario = async (userId) => {
+    try {
+        const data = await HttpService.get(`/auth/user/${userId}`);
+        return data;
+    } catch (error) {
+        throw new Error(error.response?.data?.message || error.message || 'Erro ao carregar perfil do usuário');
+    }
+};
+
+export const atualizarPerfilUsuario = async (camposAlterados) => {
+    try {
+        const { data, status } = await HttpService.put('/auth/me', camposAlterados);
+        
+        if (status === 200 || status === 201) {
+            if (camposAlterados.nome) {
+                localStorage.setItem("nome", camposAlterados.nome);
+            }
+            if (camposAlterados.email) {
+                localStorage.setItem("email", camposAlterados.email);
+            }
+            
+            return { data, status };
+        } else {
+            throw new Error('Falha ao atualizar perfil');
+        }
+    } catch (error) {
+        throw new Error(error.response?.data?.message || error.message || 'Erro ao atualizar perfil do usuário');
     }
 };
 
 export const buscarOcorrenciasFiltradas = async (filtros = {}) => {
     try {
-        // Preparar body da requisição POST
         const body = {};
         
         if (filtros.dataInicial) {
-            body.dataInicial = filtros.dataInicial;
+            const [ano, mes, dia] = filtros.dataInicial.split('-');
+            body.dataInicial = `${dia}/${mes}/${ano}`;
         }
         if (filtros.dataFinal) {
-            body.dataFinal = filtros.dataFinal;
+            const [ano, mes, dia] = filtros.dataFinal.split('-');
+            body.dataFinal = `${dia}/${mes}/${ano}`;
         }
         if (filtros.natureza) {
             body.natureza = filtros.natureza;
@@ -174,29 +194,24 @@ export const buscarOcorrenciasFiltradas = async (filtros = {}) => {
             body.bairro = filtros.bairro;
         }
         
-        console.log('Buscando ocorrências com filtros:', filtros);
-        console.log('Body da requisição POST:', body);
         
         const { data } = await HttpService.post('/ocorrencias/filtro', body);
-        console.log('Ocorrências carregadas:', data);
         
-        // Processar dados para manter apenas os campos necessários para a tabela
         const dadosProcessados = data.map(ocorrencia => ({
             id: ocorrencia.id,
             numeroOcorrencia: ocorrencia.numeroOcorrencia,
             natureza: ocorrencia.natureza?.replace(/\s+/g, ' ').trim() || 'Não informado',
             createdAt: ocorrencia.createdAt,
+            dataDespacho: ocorrencia.empenhos?.[0]?.despachado || null,
             localizacao: {
                 bairro: ocorrencia.localizacao?.bairro?.replace(/^:\s*/, '').replace(/\s+/g, ' ').trim() || 'Não informado'
-            }
+            },
+            empenhos: ocorrencia.empenhos
         }));
         
         return dadosProcessados;
     } catch (error) {
-        console.error('Erro ao buscar ocorrências filtradas:', error);
-        console.error('Detalhes do erro:', error.response?.data || error.response || error);
         
-        // Se for erro 404, pode ser problema de rota
         if (error.response?.status === 404) {
             const errorMessage = error.response?.data?.message || '';
             if (errorMessage.includes('index.html') || errorMessage.includes('uploads')) {
@@ -215,10 +230,7 @@ export const buscarOcorrenciaPorId = async (id) => {
         
         return data;
     } catch (error) {
-        console.error('Erro ao buscar detalhes da ocorrência:', error);
-        console.error('Detalhes do erro:', error.response?.data || error.response || error);
         
-        // Se for erro 404, ocorrência não encontrada
         if (error.response?.status === 404) {
             throw new Error('Ocorrência não encontrada. Verifique se o ID está correto.');
         }

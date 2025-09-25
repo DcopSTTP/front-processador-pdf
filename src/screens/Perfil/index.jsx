@@ -1,72 +1,113 @@
-import React, { useState, useEffect } from 'react';
-import { UserIcon, SaveIcon, AlertCircleIcon, CheckCircleIcon } from 'lucide-react';
+import { AlertCircleIcon, CheckCircleIcon, SaveIcon, UserIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { perfilStyles } from './styles';
+import { buscarPerfilUsuario, atualizarPerfilUsuario } from '../../service/UserService';
 
-function EditarPerfil({ onBack, usuarioId }) {
-  // Estados
+function EditarPerfil({ onBack }) {
   const [formData, setFormData] = useState({
+    id: '',
     nome: '',
     email: '',
-    genero: ''
+    genero: '',
+    cpf: '' 
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [originalData, setOriginalData] = useState({});
-
-  // Carregar dados do usuário ao montar o componente
   useEffect(() => {
     carregarDadosUsuario();
-  }, [usuarioId]);
+  }, []);
 
   const carregarDadosUsuario = async () => {
     try {
-      // Dados simulados - substituir pela API real
-      const dadosUsuario = {
-        nome: 'João Silva Santos',
-        email: 'joao.silva@email.com',
-        genero: 'masculino'
+      setLoading(true);
+      setError('');
+      
+      const userId = localStorage.getItem('userId') || localStorage.getItem('id');
+      
+      if (!userId) {
+        throw new Error('ID do usuário não encontrado. Faça login novamente.');
+      }
+      
+      let dadosUsuario;
+      try {
+        dadosUsuario = await buscarPerfilUsuario(userId);
+        console.log('Dados do perfil carregados da API:', dadosUsuario);
+      } catch (apiError) {
+        console.warn('API não disponível, usando dados do localStorage:', apiError.message);
+        
+        const nome = localStorage.getItem('nome') || '';
+        const email = localStorage.getItem('email') || '';
+        const cpf = localStorage.getItem('cpf') || '';
+        
+        if (!nome && !email) {
+          throw new Error('Nenhum dado de perfil encontrado. Faça login novamente.');
+        }
+        
+        dadosUsuario = {
+          id: userId,
+          nome,
+          email,
+          cpf,
+          genero: '' 
+        };
+      }
+      
+      const dadosLimpos = {
+        id: String(dadosUsuario.id || userId),
+        nome: String(dadosUsuario.nome || ''),
+        email: String(dadosUsuario.email || ''),
+        cpf: String(dadosUsuario.cpf || ''),
+        genero: String(dadosUsuario.genero || '')
       };
       
-      setFormData(dadosUsuario);
-      setOriginalData(dadosUsuario);
-      setLoading(false);
+      setFormData(dadosLimpos);
+      setOriginalData(dadosLimpos);
+      
     } catch (error) {
-      setError('Erro ao carregar dados do perfil');
-      console.error('Erro:', error);
+      console.error('Erro ao carregar perfil:', error);
+      setError('Erro ao carregar dados do perfil: ' + error.message);
+    } finally {
       setLoading(false);
     }
   };
 
   const handleInputChange = (campo, valor) => {
+    // Garantir que o valor seja sempre uma string
+    const valorSeguro = String(valor || '');
+    
     setFormData(prev => ({
       ...prev,
-      [campo]: valor
+      [campo]: valorSeguro
     }));
     
-    // Limpar mensagens ao modificar dados
     if (error) setError('');
     if (success) setSuccess('');
   };
 
   const validarFormulario = () => {
-    if (!formData.nome.trim()) {
+    if (!formData) {
+      setError('Dados do formulário não encontrados');
+      return false;
+    }
+    if (!formData.nome || !formData.nome.trim()) {
       setError('Nome é obrigatório');
       return false;
     }
-
-    if (!formData.email.trim()) {
+    if (!formData.email || !formData.email.trim()) {
       setError('Email é obrigatório');
       return false;
     }
 
-    if (!formData.email.includes('@')) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
       setError('Email deve ter um formato válido');
       return false;
     }
 
-    if (!formData.genero) {
+    if (!formData.genero || !formData.genero.trim()) {
       setError('Selecione o gênero');
       return false;
     }
@@ -81,23 +122,37 @@ function EditarPerfil({ onBack, usuarioId }) {
     setError('');
     
     try {
-      // Simular delay da API
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const camposAlterados = obterCamposAlterados();
       
-      console.log('Dados atualizados:', formData);
+      if (Object.keys(camposAlterados).length === 0) {
+        setError('Nenhuma alteração foi detectada.');
+        setSaving(false);
+        return;
+      }
       
-      // Aqui você faria a chamada real para a API
-      // const response = await api.put(`/usuarios/${usuarioId}`, formData);
+      console.log('Enviando apenas os campos alterados:', camposAlterados);
       
-      setOriginalData(formData);
-      setSuccess('Perfil atualizado com sucesso!');
-      
-      // Limpar mensagem de sucesso após alguns segundos
-      setTimeout(() => setSuccess(''), 3000);
+      try {
+        await atualizarPerfilUsuario(camposAlterados);
+        setOriginalData(formData); 
+        setSuccess('Perfil atualizado com sucesso!');
+        
+        setTimeout(() => setSuccess(''), 3000);
+        
+      } catch (apiError) {
+        console.warn('API não disponível, atualizando localStorage:', apiError.message);
+        
+        Object.keys(camposAlterados).forEach(campo => {
+          localStorage.setItem(campo, camposAlterados[campo]);
+        });
+        
+        setOriginalData(formData);
+        setSuccess('Perfil atualizado localmente! (API indisponível)');
+        setTimeout(() => setSuccess(''), 5000);
+      }
       
     } catch (error) {
-      setError('Erro ao salvar perfil. Tente novamente.');
-      console.error('Erro ao salvar:', error);
+      setError('Erro ao salvar perfil: ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -113,26 +168,61 @@ function EditarPerfil({ onBack, usuarioId }) {
   };
 
   const temAlteracoes = () => {
-    return JSON.stringify(formData) !== JSON.stringify(originalData);
+    try {
+      if (!formData || !originalData) {
+        return false;
+      }
+      return JSON.stringify(formData) !== JSON.stringify(originalData);
+    } catch (error) {
+      console.warn('Erro ao comparar dados:', error);
+      return false;
+    }
+  };
+
+  const obterCamposAlterados = () => {
+    const camposAlterados = {};
+    
+    const camposEditaveis = ['nome', 'email', 'genero'];
+    
+    camposEditaveis.forEach(campo => {
+      if (formData[campo] !== originalData[campo]) {
+        if (formData[campo] && formData[campo].trim() !== '') {
+          camposAlterados[campo] = formData[campo].trim();
+        }
+      }
+    });
+    
+    return camposAlterados;
   };
 
 
+  if (loading) {
+    return (
+      <div style={perfilStyles.container}>
+        <div style={perfilStyles.loadingContainer}>
+          <div style={perfilStyles.spinner}></div>
+          <p>Carregando dados do perfil...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={perfilStyles.container}>
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+      
       <div style={perfilStyles.mainContainer}>
-        {/* Header */}
         <div style={perfilStyles.header}>
-          <div style={perfilStyles.headerIcon}>
-            <UserIcon style={{ width: '32px', height: '32px', color: 'white' }} />
-          </div>
-          <h1 style={perfilStyles.title}>Editar Perfil</h1>
-          <p style={perfilStyles.subtitle}>Atualize suas informações pessoais</p>
+          <h1 style={perfilStyles.title}>Meu Perfil</h1>
+          <p style={perfilStyles.subtitle}>Gerencie suas informações pessoais</p>
         </div>
 
-        {/* Formulário */}
         <div style={perfilStyles.formCard}>
-          
-          {/* Mensagens de Feedback */}
           {error && (
             <div style={perfilStyles.errorMessage}>
               <AlertCircleIcon style={{ width: '18px', height: '18px', flexShrink: 0 }} />
@@ -147,9 +237,27 @@ function EditarPerfil({ onBack, usuarioId }) {
             </div>
           )}
 
-          {/* Campos do Formulário */}
           <div style={perfilStyles.formContent}>
             
+            {formData && formData.cpf && (
+              <div style={perfilStyles.formField}>
+                <label style={perfilStyles.formLabel}>
+                  CPF
+                </label>
+                <input
+                  type="text"
+                  value={formData.cpf || ''}
+                  readOnly
+                  style={{
+                    ...perfilStyles.formInput,
+                    backgroundColor: '#f9fafb',
+                    color: '#6b7280',
+                    cursor: 'not-allowed'
+                  }}
+                />
+              </div>
+            )}
+
             {/* Campo Nome */}
             <div style={perfilStyles.formField}>
               <label style={perfilStyles.formLabel}>
@@ -157,51 +265,44 @@ function EditarPerfil({ onBack, usuarioId }) {
               </label>
               <input
                 type="text"
-                value={formData.nome}
+                value={formData.nome || ''}
                 onChange={(e) => handleInputChange('nome', e.target.value)}
                 placeholder="Digite seu nome completo"
                 style={perfilStyles.formInput}
               />
             </div>
 
-            {/* Campo Email */}
             <div style={perfilStyles.formField}>
               <label style={perfilStyles.formLabel}>
                 Email *
               </label>
               <input
                 type="email"
-                value={formData.email}
+                value={formData.email || ''}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 placeholder="Digite seu email"
                 style={perfilStyles.formInput}
               />
             </div>
 
-            {/* Campo Gênero */}
             <div style={perfilStyles.formField}>
               <label style={perfilStyles.formLabel}>
                 Gênero *
               </label>
               <select
-                value={formData.genero}
+                value={formData.genero || ''}
                 onChange={(e) => handleInputChange('genero', e.target.value)}
                 style={perfilStyles.formSelect}
               >
                 <option value="">Selecione seu gênero</option>
                 <option value="masculino">Masculino</option>
                 <option value="feminino">Feminino</option>
-                <option value="nao-binario">Não-binário</option>
-                <option value="prefiro-nao-informar">Prefiro não informar</option>
               </select>
             </div>
 
           </div>
 
-          {/* Botões de Ação */}
           <div style={perfilStyles.formActions}>
-            
-            {/* Indicador de Alterações */}
             {temAlteracoes() && (
               <div style={perfilStyles.changesIndicator}>
                 <span>• Você tem alterações não salvas</span>
@@ -209,7 +310,6 @@ function EditarPerfil({ onBack, usuarioId }) {
             )}
 
             <div style={perfilStyles.actionButtons}>
-              {/* Botão Cancelar */}
               <button
                 onClick={cancelarEdicao}
                 disabled={saving}
@@ -218,7 +318,6 @@ function EditarPerfil({ onBack, usuarioId }) {
                 {onBack ? 'Voltar' : 'Cancelar'}
               </button>
 
-              {/* Botão Salvar */}
               <button
                 onClick={salvarPerfil}
                 disabled={saving || !temAlteracoes()}
@@ -241,7 +340,6 @@ function EditarPerfil({ onBack, usuarioId }) {
 
         </div>
 
-        {/* Informações Adicionais */}
         <div style={perfilStyles.infoCard}>
           <h3 style={perfilStyles.infoTitle}>Informações Importantes</h3>
           <ul style={perfilStyles.infoList}>

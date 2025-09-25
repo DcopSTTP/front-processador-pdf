@@ -52,7 +52,6 @@ export const extractDataFromPDF = async (file) => {
 
         return extractedData;
     } catch (error) {
-        console.error('Erro ao extrair dados:', error);
         throw new Error('Falha ao processar o PDF: ' + error.message);
     }
 };
@@ -104,21 +103,14 @@ export const saveDataToBackend = async (extractedData) => {
         const formattedData = formatDataForBackend(extractedData);
         
         // Log para debug - mostrar como ficou o JSON
-        console.log('=== DADOS FORMATADOS PARA O BACKEND ===');
-        console.log(JSON.stringify(formattedData, null, 2));
-        console.log('==========================================');
 
         // Usar o service para manter a padronização e incluir o token automaticamente
         const result = await salvarOcorrencia(formattedData);
         
         // Log da resposta do backend
-        console.log('=== RESPOSTA DO BACKEND ===');
-        console.log(JSON.stringify(result, null, 2));
-        console.log('============================');
         
         return result;
     } catch (error) {
-        console.error('Erro ao salvar dados:', error);
         throw new Error('Falha ao salvar dados no sistema: ' + error.message);
     }
 };
@@ -361,13 +353,11 @@ export const generateNewPDF = async (data) => {
 
         return true;
     } catch (error) {
-        console.error('Erro ao gerar PDF:', error);
         throw new Error('Falha ao gerar relatório');
     }
 };
 
 export const parseOccurrenceData = (text) => {
-    console.log('=== INÍCIO DA EXTRAÇÃO ===');
     
     const dadosLocalizacaoExtraidos = extrairDadosLocalizacao(text);
     
@@ -381,7 +371,6 @@ export const parseOccurrenceData = (text) => {
         relatos: extrairRelatos(text)
     };
 
-    console.log('Dados extraídos:', result);
     return result;
 };
 
@@ -453,12 +442,23 @@ const extrairDadosLocalizacao = (text) => {
     if (municipio === 'Não informado') {
         municipio = extractField(/Município[^:]*:\s*([^L]+)(?=Logradouro)/i, text);
     }
-    const logradouro = extractField(/Logradouro:\s*([^B]+?)(?=\s*Bairro:)/, text);
-    let bairro = extractField(/Bairro\s*([^C]+?)(?=\s*Complemento)/, text);
+    
+    // Melhorar extração do logradouro - tentar vários padrões
+    let logradouro = extractField(/Logradouro:\s*([^B]+?)(?=\s*Bairro:)/, text);
+    if (logradouro === 'Não informado') {
+        // Tentar padrão alternativo sem lookahead específico
+        logradouro = extractField(/Logradouro:\s*([^\n\r]+)/, text);
+        if (logradouro !== 'Não informado') {
+            // Limpar possível texto que pode vir junto
+            logradouro = logradouro.replace(/\s*Bairro:.*$/, '').trim();
+        }
+    }
+    
+    let bairro = extractField(/Bairro:\s*([^C]+?)(?=\s*Complemento)/, text);
     if (bairro === 'Não informado') {
         bairro = extractField(/Bairro[^:]*:\s*([^L]+)(?=Complemento)/i, text);
-        
     }
+    
     let complemento = extractField(/Complemento:\s*([^T]+?)(?=\s*Tipo\s*de\s*Local:)/, text);
     if (complemento === 'Não informado') {
         complemento = extractField(/Complemento[^:]*:\s*([^L]+)(?=Local)/i, text);
@@ -487,21 +487,6 @@ const extrairDadosLocalizacao = (text) => {
         }
     }
 
-    console.log('Dados de localização extraídos:', {
-        municipio: municipio.trim(),
-        logradouro: logradouro.trim(),
-        bairro: bairro.trim(),
-        complemento: complemento.trim(),
-        tipoLocal: tipoLocal.trim(),
-        tipoVia: tipoVia.trim(),
-        numero: numero.trim(),
-        cep: cep.trim(),
-        pontoReferencia: pontoReferencia.trim(),
-        latitude,
-        longitude,
-        latLongCompleto
-    });
-
     return {
         // Dados principais (primeira seção)
         dadosLocalizacao1: {
@@ -523,24 +508,83 @@ const extrairDadosLocalizacao = (text) => {
     };
 };
 
+const organizarDadosPessoal = (conteudo) => {
+    // Separar a primeira linha (unidade) do resto
+    const linhas = conteudo.split(/[\r\n]/);
+    const primeiraLinha = linhas[0].replace(/\s+/g, ' ').trim();
+    
+    // Extrair todos os valores de cada categoria
+    const nomes = [];
+    const cargos = [];
+    const funcoes = [];
+    const matriculas = [];
+    
+    // Usar regex para capturar todos os valores
+    const nomesMatch = conteudo.match(/Nome funcional:\s*([^\r\n]+)/g);
+    if (nomesMatch) {
+        nomesMatch.forEach(match => {
+            const nome = match.replace('Nome funcional:', '').trim();
+            if (nome) nomes.push(nome);
+        });
+    }
+    
+    const cargosMatch = conteudo.match(/Cargo:\s*([^\r\n]+)/g);
+    if (cargosMatch) {
+        cargosMatch.forEach(match => {
+            const cargo = match.replace('Cargo:', '').trim();
+            if (cargo) cargos.push(cargo);
+        });
+    }
+    
+    const funcoesMatch = conteudo.match(/Função:\s*([^\r\n]+)/g);
+    if (funcoesMatch) {
+        funcoesMatch.forEach(match => {
+            const funcao = match.replace('Função:', '').trim();
+            if (funcao) funcoes.push(funcao);
+        });
+    }
+    
+    const matriculasMatch = conteudo.match(/Matrícula:\s*([^\r\n]+)/g);
+    if (matriculasMatch) {
+        matriculasMatch.forEach(match => {
+            const matricula = match.replace('Matrícula:', '').trim();
+            if (matricula) matriculas.push(matricula);
+        });
+    }
+    
+    // Organizar por pessoa, uma informação embaixo da outra
+    let resultado = primeiraLinha;
+    const maxPessoas = Math.max(nomes.length, cargos.length, funcoes.length, matriculas.length);
+    
+    for (let i = 0; i < maxPessoas; i++) {
+        if (nomes[i]) resultado += `\nNome funcional: ${nomes[i]}`;
+        if (cargos[i]) resultado += `\nCargo: ${cargos[i]}`;
+        if (funcoes[i]) resultado += `\nFunção: ${funcoes[i]}`;
+        if (matriculas[i]) resultado += `\nMatrícula: ${matriculas[i]}`;
+        
+        // Adicionar linha em branco entre pessoas (se houver mais de uma)
+        if (i < maxPessoas - 1 && maxPessoas > 1) {
+            resultado += '\n';
+        }
+    }
+    
+    return resultado;
+};
+
 const extrairEmpenhos = (text) => {
     // Verificar se não há empenho
     if (text.includes('Ocorrência Não Empenhada')) {
         return {
             vtr: 'Ocorrência Não Empenhada',
             equipamentos: 'N/A',
-            despachado: 'N/A',
-            deslocamento: 'N/A',
-            chegadaLocal: 'N/A',
-            liberado: 'N/A'
+            despachado: 'Não informado',
+            deslocamento: 'Não informado',
+            chegadaLocal: 'Não informado',
+            liberado: 'Não informado'
         };
     }
 
     const secaoEmpenhos = extractField(/Empenhos:?\s+(.*?)(?=\s*Dados)/s, text);
-    
-    console.log('=== DEBUG EMPENHOS ===');
-    console.log('Seção empenhos extraída:', secaoEmpenhos);
-    console.log('======================');
     
     if (secaoEmpenhos === 'Não informado') {
         return {
@@ -553,48 +597,45 @@ const extrairEmpenhos = (text) => {
         };
     }
 
-    // Extrair VTR e equipamentos da primeira parte
-    const unidade = secaoEmpenhos.split('Despachado')[0].trim();
-    const vtrMatch = unidade.match(/VTR\s*([^\s]+)/);
-    const equipMatch = unidade.match(/Equipamento[^:]*:\s*([^D]+)/);
+    // Extrair unidade (VTR/Ram/etc.) - capturar tudo entre início e "Equipamento(s):"
+    let vtr = 'N/A';
     
-    // Extrair tempos dos empenhos - regex mais específica para despachado
-    let despachado = extractField(/Despachado:\s*([^\r\n]+?)(?=\s*Liberado)/, secaoEmpenhos);
-    if (despachado === 'Não informado') {
-        despachado = extractField(/Despachado:\s*([^\r\n]+?)(?=\s*Em\s*Deslocamento)/, secaoEmpenhos);
-    }
-    if (despachado === 'Não informado') {
-        despachado = extractField(/Despachado:\s*([^\r\n]+)/, secaoEmpenhos);
-    }
-    
-    let deslocamento = extractField(/Em\s*Deslocamento:\s*([^\r\n]+?)(?=\s*Chegada)/, secaoEmpenhos);
-    if (deslocamento === 'Não informado') {
-        deslocamento = extractField(/Em\s*Deslocamento:\s*([^\r\n]+)/, secaoEmpenhos);
-    }
-    
-    let chegadaLocal = extractField(/Chegada\s*no\s*Local:\s*([^\r\n]+?)(?=\s*Liberado)/, secaoEmpenhos);
-    if (chegadaLocal === 'Não informado') {
-        chegadaLocal = extractField(/Chegada\s*no\s*Local:\s*([^\r\n]+)/, secaoEmpenhos);
+    // Capturar todo o conteúdo antes de "Equipamento(s):"
+    const unidadeCompleta = secaoEmpenhos.match(/^([\s\S]*?)(?=Equipamento\(s\):)/m);
+    if (unidadeCompleta) {
+        const conteudo = unidadeCompleta[1].trim();
+        
+        // Verificar se contém informações de pessoal (nomes funcionais, cargos, etc.)
+        if (conteudo.includes('Nome funcional:') || conteudo.includes('Cargo:') || conteudo.includes('Função:') || conteudo.includes('Matrícula:')) {
+            vtr = organizarDadosPessoal(conteudo);
+        } else {
+            // Caso normal - apenas primeira linha
+            const primeiraLinha = conteudo.split(/[\r\n]/)[0];
+            vtr = primeiraLinha.replace(/\s+/g, ' ').trim();
+        }
     }
     
-    let liberado = extractField(/Liberado:\s*([^\r\n]+)/, secaoEmpenhos);
-
-    console.log('Empenhos extraídos:', {
-        vtr: vtrMatch ? vtrMatch[1].trim() : unidade,
-        equipamentos: equipMatch ? equipMatch[1].trim() : 'N/A',
-        despachado: despachado.trim(),
-        deslocamento: deslocamento.trim(),
-        chegadaLocal: chegadaLocal.trim(),
-        liberado: liberado.trim()
-    });
+    // Extrair equipamentos - aceitar diferentes valores até o próximo campo
+    const equipMatch = secaoEmpenhos.match(/Equipamento\(s\):\s*([^\n\r]+?)(?=\s*Despachado|\n\s*Despachado|$)/i);
+    const equipamentos = equipMatch ? equipMatch[1].replace(/\s+/g, ' ').trim() : 'N/A';
+    
+    // Extrair tempos com regex mais precisas para evitar duplicação
+    const despachado = extractField(/Despachado:\s*(\d{2}\/\d{2}\/\d{4}\s*às\s*\d{2}:\d{2})/, secaoEmpenhos) || 'N/A';
+    
+    const deslocamento = extractField(/Em\s*Deslocamento:\s*(\d{2}\/\d{2}\/\d{4}\s*às\s*\d{2}:\d{2})/, secaoEmpenhos) || 'N/A';
+    
+    // Para chegada no local - usar regex específica para data/hora
+    const chegadaLocal = extractField(/Chegada\s*no\s*Local:\s*(\d{2}\/\d{2}\/\d{4}\s*às\s*\d{2}:\d{2})/, secaoEmpenhos) || 'N/A';
+    
+    const liberado = extractField(/Liberado:\s*(\d{2}\/\d{2}\/\d{4}\s*às\s*\d{2}:\d{2})/, secaoEmpenhos) || 'N/A';
     
     return {
-        vtr: vtrMatch ? vtrMatch[1].trim() : unidade,
-        equipamentos: equipMatch ? equipMatch[1].trim() : 'N/A',
-        despachado: despachado.trim(),
-        deslocamento: deslocamento.trim(),
-        chegadaLocal: chegadaLocal.trim(),
-        liberado: liberado.trim()
+        vtr: vtr,
+        equipamentos: equipamentos,
+        despachado: despachado,
+        deslocamento: deslocamento, 
+        chegadaLocal: chegadaLocal,
+        liberado: liberado
     };
 };
 

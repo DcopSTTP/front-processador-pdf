@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from 'sweetalert2';
 import Logo from "../../assets/Logo.svg";
 import * as UserService from "../../service/UserService";
-import Swal from 'sweetalert2';
-import "./styles.css"; 
+import "./styles.css";
 
 export default function EsqueciSenha({ onVoltar }) {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: CPF, 2: Código, 3: Nova senha
+  const [step, setStep] = useState(1); 
   const [formData, setFormData] = useState({
     cpf: "",
     codigo: "",
@@ -38,7 +38,7 @@ export default function EsqueciSenha({ onVoltar }) {
       [field]: value
     }));
     
-    setError(""); // Limpar erro ao digitar
+    setError(""); 
   }
 
   async function handleStep1() {
@@ -50,7 +50,6 @@ export default function EsqueciSenha({ onVoltar }) {
       return;
     }
 
-    // Validar formato do CPF
     const isCpf = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(formData.cpf);
 
     if (!isCpf) {
@@ -59,14 +58,11 @@ export default function EsqueciSenha({ onVoltar }) {
     }
 
     setLoading(true);
-    console.log('Iniciando processo de recuperação de senha para CPF:', formData.cpf);
 
     try {
       const cpfSemFormatacao = formData.cpf.replace(/\D/g, "");
-      console.log('CPF sem formatação:', cpfSemFormatacao);
       
       const { data, status } = await UserService.esqueciSenha(cpfSemFormatacao);
-      console.log('Resposta do servidor:', { data, status });
       
       await Swal.fire({
         title: 'Código Enviado!',
@@ -78,7 +74,6 @@ export default function EsqueciSenha({ onVoltar }) {
       
       setStep(2);
     } catch (error) {
-      console.error('Erro ao solicitar recuperação:', error);
       await Swal.fire({
         title: 'Erro!',
         text: error.message || 'Erro ao solicitar recuperação de senha.',
@@ -98,9 +93,6 @@ export default function EsqueciSenha({ onVoltar }) {
       setError("Digite o código de 6 dígitos");
       return;
     }
-
-    // Apenas validação local - avança para o próximo step
-    // A validação do código será feita no backend quando redefinir a senha
     setStep(3);
   }
 
@@ -130,7 +122,6 @@ export default function EsqueciSenha({ onVoltar }) {
         confirmButtonColor: '#22c55e'
       });
       
-      // Redirecionar para login
       navigate('/login');
     } catch (error) {
       await Swal.fire({
@@ -208,7 +199,6 @@ export default function EsqueciSenha({ onVoltar }) {
             <p className="esqueci-subtitle">{getStepSubtitle()}</p>
           </div>
 
-          {/* Step Indicator */}
           <div className="step-indicator">
             <div className={`step-dot ${step >= 1 ? (step > 1 ? 'completed' : 'active') : ''}`}></div>
             <div className={`step-dot ${step >= 2 ? (step > 2 ? 'completed' : 'active') : ''}`}></div>
@@ -216,7 +206,6 @@ export default function EsqueciSenha({ onVoltar }) {
           </div>
 
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }}>
-            {/* Step 1: CPF */}
             {step === 1 && (
               <div className="form-group">
                 <label className="form-label">CPF</label>
@@ -237,7 +226,6 @@ export default function EsqueciSenha({ onVoltar }) {
               </div>
             )}
 
-            {/* Step 2: Código */}
             {step === 2 && (
               <div className="form-group">
                 <label className="form-label">Código de Verificação</label>
@@ -263,7 +251,6 @@ export default function EsqueciSenha({ onVoltar }) {
               </div>
             )}
 
-            {/* Step 3: Nova Senha */}
             {step === 3 && (
               <>
                 <div className="form-group">
@@ -334,7 +321,6 @@ export default function EsqueciSenha({ onVoltar }) {
               </>
             )}
 
-            {/* Messages */}
             {error && (
               <div className="error-message">
                 <svg className="message-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,7 +339,6 @@ export default function EsqueciSenha({ onVoltar }) {
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
@@ -377,7 +362,6 @@ export default function EsqueciSenha({ onVoltar }) {
               )}
             </button>
 
-            {/* Back to Step 1 */}
             {step === 2 && (
               <button
                 type="button"
@@ -388,9 +372,7 @@ export default function EsqueciSenha({ onVoltar }) {
               </button>
             )}
 
-            {/* Back to Login */}
             <div className="back-link">
-              {/* BOTÃO PARA VOLTAR AO LOGIN - CHAMA A FUNÇÃO RECEBIDA DO APP.JS */}
               <button 
                 type="button"
                 onClick={(e) => {

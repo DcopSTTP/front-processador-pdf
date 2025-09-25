@@ -10,9 +10,8 @@ import Perfil from '../Perfil';
 import DetalhesOcorrencia from '../DetalhesOcorrencia';
 import Swal from 'sweetalert2';
 
-export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, currentView }) {
+export default function Menu({ onLogout, userData, currentView }) {
   const navigate = useNavigate();
-  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedOcorrenciaId, setSelectedOcorrenciaId] = useState(null);
 
@@ -56,7 +55,6 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
     }] : [])
   ];
 
-  // Mapear as rotas
   const routes = {
     dashboard: '/dashboard',
     pdf: '/pdf',
@@ -83,7 +81,6 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
     });
 
     if (result.isConfirmed) {
-      // Mostrar mensagem de sucesso
       await Swal.fire({
         title: 'Logout realizado!',
         text: 'Você foi desconectado com sucesso.',
@@ -96,6 +93,10 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
       onLogout();
       navigate('/login');
     }
+  };
+
+  const handleLogoClick = () => {
+    navigate('/dashboard');
   };
 
   return (
@@ -141,6 +142,14 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
           justify-content: center;
           backdrop-filter: blur(10px);
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .logo-container:hover {
+          background: rgba(255, 255, 255, 0.25);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .logo-image {
@@ -373,7 +382,8 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
           display: block;
         }
 
-        @media (max-width: 768px) {
+        /* Tablets e telas menores */
+        @media (max-width: 1024px) {
           .navbar {
             padding: 0 1rem;
           }
@@ -394,11 +404,61 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
             padding: 0.5rem;
             cursor: pointer;
           }
+
+          .logo-container {
+            padding: 0.5rem 0.75rem;
+          }
+
+          .logo-image {
+            max-width: 50px;
+            max-height: 50px;
+          }
         }
 
-        @media (min-width: 769px) {
+        /* Breakpoint adicional para telas médias */
+        @media (max-width: 900px) {
+          .navbar {
+            padding: 0 0.75rem;
+          }
+          
+          .nav-left {
+            gap: 1rem;
+          }
+        }
+
+        /* Garantir visibilidade do botão mobile */
+        .mobile-menu-button {
+          display: none;
+        }
+
+        @media (max-width: 1024px) {
           .mobile-menu-button {
-            display: none;
+            display: block !important;
+            position: relative;
+            z-index: 1001;
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+          }
+          
+          .mobile-menu-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+          }
+          
+          .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          }
+        }
+
+        @media (min-width: 1025px) {
+          .mobile-menu-button {
+            display: none !important;
           }
 
           .mobile-menu-dropdown {
@@ -438,33 +498,11 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
         // }
       `}</style>
 
-      {/* Mobile Toggle Button */}
-      {/* <button 
-        className="mobile-toggle"
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-      >
-        {mobileMenuOpen ? (
-          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        )}
-      </button> */}
-
-      {/* Mobile Overlay */}
-      {/* <div 
-        className={`overlay ${mobileMenuOpen ? 'mobile-open' : ''}`}
-        onClick={() => setMobileMenuOpen(false)}
-      ></div> */}
 
       <nav className="navbar">
         <div className="nav-container">
-          {/* Left side - Logo and Menu Items */}
           <div className="nav-left">
-            <div className="logo-container">
+            <div className="logo-container" onClick={handleLogoClick} title="Voltar ao Dashboard">
               <img 
                 src={Logo} 
                 alt="Logo do Sistema" 
@@ -490,7 +528,6 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
             </div>
           </div>
 
-          {/* Right side - User info and Logout */}
           <div className="nav-right">
             <div className="user-info">
               <div 
@@ -510,7 +547,6 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
               <span>Sair</span>
             </button>
 
-            {/* Mobile menu button */}
             <button 
               className="mobile-menu-button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -529,15 +565,12 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
         </div>
       </nav>
 
-      {/* Mobile Overlay */}
       <div 
         className={`mobile-overlay ${mobileMenuOpen ? 'open' : ''}`}
         onClick={() => setMobileMenuOpen(false)}
       ></div>
 
-      {/* Mobile Menu Dropdown */}
       <div className={`mobile-menu-dropdown ${mobileMenuOpen ? 'open' : ''}`}>
-        {/* Menu Items */}
         {menuItems.map((item) => (
           <div key={item.id} className="mobile-menu-item">
             <button
@@ -553,7 +586,6 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
           </div>
         ))}
 
-        {/* User Section */}
         <div className="mobile-user-section">
           <div 
             className="mobile-user-info"
@@ -577,9 +609,11 @@ export default function Menu({ activeMenu, setActiveMenu, onLogout, userData, cu
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="main-content">
-        {currentView === 'pdf' && <ProcessadorPDF />}
+        {currentView === 'pdf' && <ProcessadorPDF onViewDetails={(id) => {
+          setSelectedOcorrenciaId(id);
+          navigate('/detalhes-ocorrencia');
+        }} />}
         {currentView === 'dashboard' && <Dashboard />}
         {currentView === 'relatorio' && <Relatorio onVerDetalhes={(id) => {
           setSelectedOcorrenciaId(id);

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from 'sweetalert2';
 import Logo from "../../assets/Logo.svg";
-import * as UserService from "../../service/UserService"; 
+import * as UserService from "../../service/UserService";
 import "./styles.css";
 
 export default function Login({ onLogin, onSwitchToForgotPassword }) {
@@ -34,7 +35,6 @@ export default function Login({ onLogin, onSwitchToForgotPassword }) {
     if (e) e.preventDefault();
     setError("");
 
-    // Validações
     if (!validateCpf(cpf)) {
       setError("CPF inválido. Digite 11 números.");
       return;
@@ -48,45 +48,42 @@ export default function Login({ onLogin, onSwitchToForgotPassword }) {
     setLoading(true);
 
     try {
-      // Preparar dados para envio (remover formatação do CPF)
       const loginData = {
-        cpf: cpf.replace(/\D/g, ""), // Remove pontos e traços
+        cpf: cpf.replace(/\D/g, ""), 
         senha: password
       };
 
-      // Chamar função de login do UserService
       const { data, status } = await UserService.login(loginData);
 
-      console.log("Login bem-sucedido", { 
-        status, 
-        user: data.nome, 
-        tipoUser: data.tipoUser 
-      });
+      if (status === 200 || status === 201) {
+        localStorage.setItem("userData", JSON.stringify(data));
+        localStorage.setItem("isLoggedIn", "true");
+        if (rememberMe) {
+          localStorage.setItem("rememberMe", "true");
+          localStorage.setItem("savedCpf", cpf);
+          localStorage.setItem("savedPassword", password);
+        } else {
+          localStorage.removeItem("rememberMe");
+          localStorage.removeItem("savedCpf");
+          localStorage.removeItem("savedPassword");
+        }
 
-      // Salvar dados da sessão no localStorage
-      localStorage.setItem("userData", JSON.stringify(data));
-      localStorage.setItem("isLoggedIn", "true");
-
-      // Salvar preferência "Lembrar-me" se necessário
-      if (rememberMe) {
-        localStorage.setItem("rememberMe", "true");
-        localStorage.setItem("savedCpf", cpf);
-        localStorage.setItem("savedPassword", password);
-      } else {
-        localStorage.removeItem("rememberMe");
-        localStorage.removeItem("savedCpf");
-        localStorage.removeItem("savedPassword");
+        onLogin(data);
+        navigate('/dashboard');
       }
 
-      // Chamar callback de sucesso passando os dados do usuário
-      onLogin(data);
-      
-      // Navegar para o dashboard
-      navigate('/dashboard');
-
     } catch (error) {
-      console.error("Erro no login:", error);
-      setError(error.message || "Falha ao conectar. Tente novamente.");
+      if (error.status === 403) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Oops..',
+          text: error.message, 
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#f59e0b'
+        });
+      } else {
+        setError(error.message || "Falha ao conectar. Tente novamente.");
+      }
     } finally {
       setLoading(false);
     }
@@ -98,7 +95,6 @@ export default function Login({ onLogin, onSwitchToForgotPassword }) {
     }
   };
 
-  // Verificar se existe CPF e senha salvos ao carregar o componente
   React.useEffect(() => {
     const savedRememberMe = localStorage.getItem("rememberMe");
     const savedCpf = localStorage.getItem("savedCpf");
@@ -135,13 +131,10 @@ export default function Login({ onLogin, onSwitchToForgotPassword }) {
           </div>
 
           <div>
-            {/* CPF Field */}
             <div className="form-group">
               <label className="form-label">CPF</label>
               <div className="input-container">
-                <svg className="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+                
                 <input
                   type="text"
                   value={cpf}
@@ -154,13 +147,10 @@ export default function Login({ onLogin, onSwitchToForgotPassword }) {
               </div>
             </div>
 
-            {/* Password Field */}
             <div className="form-group">
               <label className="form-label">Senha</label>
               <div className="input-container">
-                <svg className="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+                
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
@@ -189,7 +179,6 @@ export default function Login({ onLogin, onSwitchToForgotPassword }) {
               </div>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="error-message">
                 <svg className="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,7 +188,6 @@ export default function Login({ onLogin, onSwitchToForgotPassword }) {
               </div>
             )}
 
-            {/* Actions */}
             <div className="form-actions">
               <label className="checkbox-container">
                 <input
@@ -220,7 +208,6 @@ export default function Login({ onLogin, onSwitchToForgotPassword }) {
               </button>
             </div>
 
-            {/* Submit Button */}
             <button
               onClick={handleSubmit}
               disabled={loading}

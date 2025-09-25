@@ -1,5 +1,4 @@
 export const perfilStyles = {
-    // Container principal
     container: {
       minHeight: '100vh',
       backgroundColor: '#f3f4f6',
@@ -18,7 +17,6 @@ export const perfilStyles = {
       gap: '24px'
     },
   
-    // Header
     header: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
@@ -55,7 +53,6 @@ export const perfilStyles = {
       fontWeight: '500'
     },
   
-    // Card do formulário
     formCard: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
@@ -107,7 +104,6 @@ export const perfilStyles = {
       fontFamily: 'inherit'
     },
   
-    // Mensagens de feedback
     errorMessage: {
       display: 'flex',
       alignItems: 'center',
@@ -136,7 +132,6 @@ export const perfilStyles = {
       marginBottom: '20px'
     },
   
-    // Ações do formulário
     formActions: {
       marginTop: '32px',
       paddingTop: '24px',
@@ -205,7 +200,6 @@ export const perfilStyles = {
       animation: 'spin 1s linear infinite'
     },
   
-    // Card de informações
     infoCard: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
@@ -229,7 +223,6 @@ export const perfilStyles = {
       lineHeight: '1.6'
     },
   
-    // Loading states
     loadingContainer: {
       display: 'flex',
       flexDirection: 'column',
@@ -254,7 +247,6 @@ export const perfilStyles = {
     }
   };
   
-  // CSS Animations e hover effects
   export const perfilCSS = `
     @keyframes spin {
       0% { transform: rotate(0deg); }

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import * as UserService from "../../service/UserService";
+import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import * as UserService from "../../service/UserService";
 import "./styles.css";
 
 export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) {
@@ -44,7 +44,7 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
   function analyzePasswordStrength(password) {
     let score = 0;
     const feedback = [];
-    let color = "#dc2626"; // vermelho
+    let color = "#dc2626"; 
 
     if (password.length === 0) {
       return { score: 0, feedback: [], color: "#94a3b8" };
@@ -74,13 +74,12 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
       feedback.push("Inclua símbolos especiais (!@#$...)");
     }
 
-    // Determinar cor e texto baseado no score
     if (score === 4) {
-      color = "#16a34a"; // verde
+      color = "#16a34a"; 
     } else if (score === 3) {
-      color = "#f59e0b"; // amarelo
+      color = "#f59e0b"; 
     } else if (score >= 2) {
-      color = "#f59e0b"; // amarelo
+      color = "#f59e0b"; 
     }
 
     return { score, feedback, color };
@@ -116,7 +115,6 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
     if (e) e.preventDefault();
     setError("");
 
-    // Validações básicas
     if (!formData.nome.trim()) {
       setError("Nome é obrigatório");
       return;
@@ -155,26 +153,16 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
     setLoading(true);
 
     try {
-      // Formatar dados para o backend
       const dadosCadastro = {
         nome: formData.nome,
         email: formData.email,
-        cpf: formData.cpf.replace(/\D/g, ""), // Remove formatação do CPF
+        cpf: formData.cpf.replace(/\D/g, ""), 
         senha: formData.password,
         genero: formData.genero,
         tipo: formData.isAdmin ? "admin" : "user"
       };
-      
-      console.log("Enviando dados para cadastro:", dadosCadastro);
-      
-      // Chamar o serviço de cadastro
       const { data, status } = await UserService.cadastro(dadosCadastro);
-      
-      console.log("Cadastro realizado com sucesso:", data);
-      
-      // Se for admin criando usuário, volta para lista
       if (isAdminView) {
-        // Mostrar notificação de sucesso com SweetAlert2
         await Swal.fire({
           icon: 'success',
           title: 'Sucesso!',
@@ -195,9 +183,7 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
         onCadastro && onCadastro(data);
       }
     } catch (error) {
-      console.error("Erro no cadastro:", error);
       
-      // Mostrar erro com SweetAlert2
       await Swal.fire({
         icon: 'error',
         title: 'Erro no Cadastro',
@@ -255,7 +241,6 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
 
         <div>
           <div className="form-grid">
-            {/* Nome */}
             <div className="form-group">
               <label className="form-label">Nome Completo</label>
               <input
@@ -269,7 +254,6 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
               />
             </div>
 
-            {/* Email */}
             <div className="form-group">
               <label className="form-label">Email</label>
               <input
@@ -283,7 +267,6 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
               />
             </div>
 
-            {/* CPF */}
             <div className="form-group">
               <label className="form-label">CPF</label>
               <input
@@ -297,7 +280,6 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
               />
             </div>
 
-            {/* Data de Nascimento */}
             <div className="form-group">
               <label className="form-label">Data de Nascimento</label>
               <input
@@ -309,7 +291,6 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
               />
             </div>
 
-            {/* Gênero */}
             <div className="form-group full-width">
               <label className="form-label">Gênero</label>
               <select
@@ -320,12 +301,9 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
                 <option value="">Selecione o gênero</option>
                 <option value="M">Masculino</option>
                 <option value="F">Feminino</option>
-                <option value="O">Outro</option>
-                <option value="N">Prefiro não informar</option>
               </select>
             </div>
 
-            {/* Senha */}
             <div className="form-group">
               <label className="form-label">Senha</label>
               <div className="input-container">
@@ -373,7 +351,6 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
               )}
             </div>
 
-            {/* Confirmar Senha */}
             <div className="form-group">
               <label className="form-label">Confirmar Senha</label>
               <div className="input-container">
@@ -396,7 +373,6 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
               </div>
             </div>
 
-            {/* Checkbox Admin - apenas se for admin criando usuário */}
             {isAdminView && (
               <div className="form-group full-width" style={{ marginTop: '1rem' }}>
                 <label style={{ 
@@ -434,7 +410,6 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
             )}
           </div>
 
-          {/* Mensagem de erro */}
           {error && (
             <div className="error-message" style={{ marginTop: '1rem' }}>
               <svg className="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -444,7 +419,6 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
             </div>
           )}
 
-          {/* Botões */}
           <div style={{ 
             display: 'flex', 
             gap: '1rem', 
@@ -550,7 +524,6 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
             </button>
           </div>
 
-          {/* CSS para animação de loading */}
           <style>{`
             @keyframes spin {
               0% { transform: rotate(0deg); }
@@ -558,7 +531,6 @@ export default function Cadastro({ onCadastro, onSwitchToSignin, isAdminView }) 
             }
           `}</style>
 
-          {/* Link para login (apenas se não for admin) */}
           {!isAdminView && (
             <div className="signin-link">
               <span>Já tem uma conta?</span>

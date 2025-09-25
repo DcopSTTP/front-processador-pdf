@@ -1,18 +1,13 @@
-// type.js
-// JavaScript equivalents of TypeScript interfaces for documentation and validation
 
-// ILogin - Login interface
 export const LoginSchema = {
   email: '',
   senha: ''
 };
 
-// IEsqueciSenha - Forgot password interface  
 export const EsqueciSenhaSchema = {
   email: ''
 };
 
-// ILoginResponse - Login response interface
 export const LoginResponseSchema = {
   data: {
     access_token: '',
@@ -25,29 +20,26 @@ export const LoginResponseSchema = {
   status: 0
 };
 
-// ICultoData - Culto data interface
 export const CultoDataSchema = {
-  tipo: 'culto', // 'culto' | 'evento'
+  tipo: 'culto', 
   titulo: '',
   descricao: '',
   data: new Date(),
   hora: new Date(),
   corTexto: '',
-  imagem: null // string | null
+  imagem: null 
 };
 
-// IEventoData - Evento data interface
 export const EventoDataSchema = {
-  tipo: 'evento', // 'culto' | 'evento'
+  tipo: 'evento', 
   titulo: '',
   descricao: '',
   data: new Date(),
   hora: new Date(),
   corTexto: '',
-  imagem: null // string | null
+  imagem: null 
 };
 
-// IEscalaData - Escala data interface
 export const EscalaDataSchema = {
   data: '',
   horario: '',

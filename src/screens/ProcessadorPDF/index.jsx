@@ -19,8 +19,7 @@ import {
 import { formatFileSize } from '../../utils/fileUtils';
 import { createHandlers } from '../../utils/handlers';
 
-function ProcessadorPDF() {
-  // Estados
+function ProcessadorPDF({ onViewDetails }) {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -29,13 +28,11 @@ function ProcessadorPDF() {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  // Criar handlers
   const {
     handleDrag,
     handleDrop,
     handleFileSelect,
     processPDF,
-    downloadReport,
     saveToBackend,
     removeFile,
     openFileDialog
@@ -48,13 +45,14 @@ function ProcessadorPDF() {
     fileInputRef,
     setDragActive,
     uploadedFile,
-    extractedData
+    extractedData,
+    onViewDetails
   );
 
   return (
     <div style={containerStyle}>
       <div style={mainContainerStyle}>
-        {/* Header */}
+        
         <div style={headerStyle}>
           <div style={headerIconStyle}>
             <ProcessIcon style={{ color: 'white' }} />
@@ -63,7 +61,6 @@ function ProcessadorPDF() {
           <p style={subtitleStyle}>Extraia e reorganize informações de relatórios de ocorrência</p>
         </div>
 
-        {/* Upload Area */}
         <div style={uploadCardStyle}>
           {!uploadedFile ? (
             <FileUpload
@@ -94,7 +91,6 @@ function ProcessadorPDF() {
           )}
         </div>
 
-        {/* Data Preview */}
         {extractedData && (
           <DataPreview 
             extractedData={extractedData} 
@@ -102,7 +98,6 @@ function ProcessadorPDF() {
           />
         )}
 
-        {/* Instructions */}
         <div style={instructionsStyle}>
           <h3 style={{ fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>Como usar:</h3>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -126,7 +121,6 @@ function ProcessadorPDF() {
         </div>
       </div>
       
-      {/* CSS Animation */}
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }

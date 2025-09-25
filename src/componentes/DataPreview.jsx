@@ -15,7 +15,6 @@ export const DataPreview = ({ extractedData, saveToBackend }) => {
     <div style={dataPreviewStyle}>
       <h2 style={previewHeaderStyle}>Dados Extraídos do PDF</h2>
 
-      {/* Número da Ocorrência em destaque */}
       <div style={{
         ...dataFieldStyle,
         backgroundColor: '#dbeafe',
@@ -44,7 +43,7 @@ export const DataPreview = ({ extractedData, saveToBackend }) => {
 
 
       <div style={dataFieldStyle}>
-        <div style={dataLabelStyle}>Dados da Localização:</div>
+        <div style={dataLabelStyle}>Dados da Localização:</div><br/>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px' }}>
 
           <div><strong>Logradouro:</strong> {extractedData.dadosLocalizacao1?.logradouro}</div>
@@ -54,8 +53,9 @@ export const DataPreview = ({ extractedData, saveToBackend }) => {
 
       <div style={dataFieldStyle}>
         <div style={dataLabelStyle}>Empenhos:</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px' }}>
-          <div><strong>VTR:</strong> {extractedData.empenhos?.vtr}</div>
+        <div>
+          <br/>
+          <div><strong>{extractedData.empenhos?.vtr}</strong></div>
           <div><strong>Equipamentos:</strong> {extractedData.empenhos?.equipamentos}</div>
           <div><strong>Despachado:</strong> {extractedData.empenhos?.despachado}</div>
           <div><strong>Em Deslocamento:</strong> {extractedData.empenhos?.deslocamento}</div>

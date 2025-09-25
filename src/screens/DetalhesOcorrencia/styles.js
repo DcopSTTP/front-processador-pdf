@@ -1,5 +1,4 @@
 export const detalhesStyles = {
-    // Container principal
     container: {
       minHeight: '100vh',
       backgroundColor: '#f3f4f6',
@@ -15,7 +14,6 @@ export const detalhesStyles = {
       gap: '24px'
     },
   
-    // Header
     header: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
@@ -52,7 +50,6 @@ export const detalhesStyles = {
       fontWeight: '500'
     },
   
-    // Card de preview dos dados (baseado no DataPreview)
     dataPreview: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
@@ -64,7 +61,6 @@ export const detalhesStyles = {
       gap: '20px'
     },
   
-    // Número da ocorrência em destaque (igual ao DataPreview)
     highlightField: {
       backgroundColor: '#dbeafe',
       border: '2px solid #3b82f6',
@@ -88,7 +84,6 @@ export const detalhesStyles = {
       letterSpacing: '0.5px'
     },
   
-    // Títulos de seção
     sectionTitle: {
       fontSize: '18px',
       fontWeight: '600',
@@ -101,7 +96,6 @@ export const detalhesStyles = {
       alignItems: 'center'
     },
   
-    // Campos de dados
     dataField: {
       backgroundColor: '#f9fafb',
       border: '1px solid #e5e7eb',
@@ -138,7 +132,6 @@ export const detalhesStyles = {
       lineHeight: '1.5'
     },
   
-    // Cards de empenhos
     empenhoCard: {
       backgroundColor: '#ffffff',
       border: '1px solid #d1d5db',
@@ -157,7 +150,6 @@ export const detalhesStyles = {
       borderBottom: '1px solid #e5e7eb'
     },
   
-    // Estados especiais
     emptyState: {
       textAlign: 'center',
       padding: '40px 20px',
@@ -165,7 +157,6 @@ export const detalhesStyles = {
       fontStyle: 'italic'
     },
   
-    // Botões de ação
     actionButtons: {
       display: 'flex',
       justifyContent: 'center',
@@ -190,7 +181,6 @@ export const detalhesStyles = {
       fontFamily: 'inherit'
     },
   
-    // Estados de loading e erro
     loadingContainer: {
       display: 'flex',
       flexDirection: 'column',
@@ -234,7 +224,6 @@ export const detalhesStyles = {
     }
   };
   
-  // CSS Animations e hover effects
   export const detalhesCSS = `
     @keyframes spin {
       0% { transform: rotate(0deg); }

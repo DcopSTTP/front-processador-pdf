@@ -1,200 +1,47 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
   Bar,
-  XAxis,
-  YAxis,
-  LineChart,
-  Line,
+  BarChart,
   CartesianGrid,
+  Cell,
   Legend,
-  AreaChart,
-  Area
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
 } from "recharts";
-import { buscarEstatisticas } from '../../service/UserService';
 import Swal from 'sweetalert2';
-// Removido mock data - agora usa dados reais da API
-const mockDataOcorrencias = [
-  {
-    id: 1,
-    numero: "2024-001234",
-    natureza: "Furto",
-    dataHora: "2024-01-15T14:30:00",
-    localizacao: {
-      logradouro: "Rua das Flores, 123",
-      bairro: "Centro",
-      cidade: "São Paulo",
-      cep: "01234-567"
-    },
-    narrativa: "Vítima relata que teve sua carteira furtada enquanto caminhava pela rua.",
-    empenhos: [
-      { viatura: "VTR-001", horario: "14:45" },
-      { viatura: "VTR-015", horario: "15:00" }
-    ],
-    relatos: [
-      { tipo: "Vítima", nome: "João Silva", cpf: "123.456.789-10" },
-      { tipo: "Testemunha", nome: "Maria Santos", cpf: "987.654.321-00" }
-    ],
-    status: "Em andamento",
-    prioridade: "Média"
-  },
-  {
-    id: 2,
-    numero: "2024-001235",
-    natureza: "Roubo",
-    dataHora: "2024-01-14T20:15:00",
-    localizacao: {
-      logradouro: "Av. Paulista, 1000",
-      bairro: "Bela Vista",
-      cidade: "São Paulo",
-      cep: "01310-100"
-    },
-    narrativa: "Vítima foi abordada por dois indivíduos que anunciaram o assalto.",
-    empenhos: [
-      { viatura: "VTR-003", horario: "20:30" },
-      { viatura: "VTR-007", horario: "20:35" },
-      { viatura: "VTR-012", horario: "21:00" }
-    ],
-    relatos: [
-      { tipo: "Vítima", nome: "Ana Costa", cpf: "456.789.123-45" },
-      { tipo: "Testemunha", nome: "Carlos Lima", cpf: "789.123.456-78" }
-    ],
-    status: "Concluído",
-    prioridade: "Alta"
-  },
-  {
-    id: 3,
-    numero: "2024-001236",
-    natureza: "Acidente de Trânsito",
-    dataHora: "2024-01-13T08:45:00",
-    localizacao: {
-      logradouro: "Rua Augusta, 500",
-      bairro: "Consolação",
-      cidade: "São Paulo",
-      cep: "01305-000"
-    },
-    narrativa: "Colisão entre dois veículos no cruzamento.",
-    empenhos: [
-      { viatura: "VTR-005", horario: "09:00" },
-      { viatura: "AMB-001", horario: "09:10" }
-    ],
-    relatos: [
-      { tipo: "Condutor 1", nome: "Pedro Oliveira", cpf: "321.654.987-12" },
-      { tipo: "Condutor 2", nome: "Lucia Fernandes", cpf: "654.321.789-34" }
-    ],
-    status: "Concluído",
-    prioridade: "Baixa"
-  },
-  {
-    id: 4,
-    numero: "2024-001237",
-    natureza: "Violência Doméstica",
-    dataHora: "2024-01-12T22:30:00",
-    localizacao: {
-      logradouro: "Rua do Socorro, 45",
-      bairro: "Vila Madalena",
-      cidade: "São Paulo",
-      cep: "05435-010"
-    },
-    narrativa: "Vítima relata agressões físicas e verbais por parte do companheiro.",
-    empenhos: [
-      { viatura: "VTR-009", horario: "22:45" },
-      { viatura: "VTR-011", horario: "23:00" }
-    ],
-    relatos: [
-      { tipo: "Vítima", nome: "Rosa Silva", cpf: "159.753.486-20" }
-    ],
-    status: "Em andamento",
-    prioridade: "Alta"
-  },
-  {
-    id: 5,
-    numero: "2024-001238",
-    natureza: "Perturbação do Sossego",
-    dataHora: "2024-01-11T01:15:00",
-    localizacao: {
-      logradouro: "Rua da Música, 78",
-      bairro: "Pinheiros",
-      cidade: "São Paulo",
-      cep: "05422-030"
-    },
-    narrativa: "Denúncia de música alta em estabelecimento comercial.",
-    empenhos: [
-      { viatura: "VTR-013", horario: "01:30" }
-    ],
-    relatos: [
-      { tipo: "Denunciante", nome: "Roberto Cruz", cpf: "753.159.864-97" }
-    ],
-    status: "Concluído",
-    prioridade: "Baixa"
-  },
-  {
-    id: 6,
-    numero: "2024-001239",
-    natureza: "Furto",
-    dataHora: "2024-01-10T16:20:00",
-    localizacao: {
-      logradouro: "Shopping Center Norte",
-      bairro: "Vila Guilherme",
-      cidade: "São Paulo",
-      cep: "02050-000"
-    },
-    narrativa: "Furto de veículo no estacionamento do shopping center.",
-    empenhos: [
-      { viatura: "VTR-002", horario: "16:35" }
-    ],
-    relatos: [
-      { tipo: "Vítima", nome: "Carlos Santos", cpf: "147.258.369-85" }
-    ],
-    status: "Em andamento",
-    prioridade: "Média"
-  },
-  {
-    id: 7,
-    numero: "2024-001240",
-    natureza: "Roubo",
-    dataHora: "2024-01-09T19:45:00",
-    localizacao: {
-      logradouro: "Estação da Luz",
-      bairro: "Luz",
-      cidade: "São Paulo",
-      cep: "01103-000"
-    },
-    narrativa: "Roubo de celular próximo à estação de trem.",
-    empenhos: [
-      { viatura: "VTR-008", horario: "20:00" }
-    ],
-    relatos: [
-      { tipo: "Vítima", nome: "Fernanda Lima", cpf: "258.369.147-96" }
-    ],
-    status: "Concluído",
-    prioridade: "Alta"
-  }
-];
+import { buscarEstatisticas, buscarEstatisticasMensais } from '../../service/UserService';
 
-// Cores para os gráficos
 const COLORS = ["#1e40af", "#dc2626", "#16a34a", "#f59e0b", "#7c3aed", "#0891b2"];
 
 function Dashboard() {
   const [estatisticas, setEstatisticas] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filtros, setFiltros] = useState({
+    ano: new Date().getFullYear(),
+    mes: new Date().getMonth() + 1,
+    tipoVisualizacao: 'mensal' 
+  });
 
-  // Carregar estatísticas da API
   useEffect(() => {
     const carregarEstatisticas = async () => {
       try {
         setLoading(true);
-        const dados = await buscarEstatisticas();
+        let dados;
+        
+        if (filtros.tipoVisualizacao === 'mensal') {
+          dados = await buscarEstatisticasMensais(filtros.ano, filtros.mes);
+        } else {
+          dados = await buscarEstatisticas();
+        }
+        
         setEstatisticas(dados);
         setError(null);
       } catch (err) {
-        console.error('Erro ao carregar estatísticas:', err);
         setError(err.message);
         Swal.fire({
           icon: 'error',
@@ -209,30 +56,64 @@ function Dashboard() {
     };
 
     carregarEstatisticas();
-  }, []);
+  }, [filtros]);
 
-  // Processar dados para os gráficos baseado na API
+  const formatarTempo = (minutos) => {
+    if (!minutos || minutos === 0) return '0min';
+    
+    const horas = Math.floor(minutos / 60);
+    const mins = Math.round(minutos % 60);
+    
+    if (horas === 0) return `${mins}min`;
+    if (mins === 0) return `${horas}h`;
+    return `${horas}h ${mins}min`;
+  };
+
   const dadosProcessados = estatisticas ? {
-    // Estatísticas principais
+    isMensal: filtros.tipoVisualizacao === 'mensal',
     totalOcorrencias: estatisticas.totalOcorrencias || 0,
-    tempoMedioDeslocamento: estatisticas.tempoMedioDeslocamento || 0,
-    tempoMedioAtendimento: estatisticas.tempoMedioAtendimento || 0,
+    tempoMedioDeslocamento: filtros.tipoVisualizacao === 'mensal' 
+      ? formatarTempo(estatisticas.tempoMedioDeslocamentoChegada)
+      : (estatisticas.tempoMedioDeslocamento?.formatted || '0h 0min'),
+      
+    tempoMedioAtendimento: filtros.tipoVisualizacao === 'mensal'
+      ? formatarTempo(estatisticas.tempoMedioDespachoChegada)
+      : (estatisticas.tempoMedioAtendimento?.formatted || '0h 0min'),
+      
+    tempoMedioDespachoLiberacao: filtros.tipoVisualizacao === 'mensal'
+      ? formatarTempo(estatisticas.tempoMedioDespachoLiberacao)
+      : (estatisticas.tempoMedioDespachoLiberacao?.formatted || '0h 0min'),
+      
     totalEmpenhosAnalisados: estatisticas.totalEmpenhosAnalisados || 0,
 
-    // Tipos de sinistro/natureza - limpar espaços excessivos
     tiposSinistro: estatisticas.tiposSinistro?.map(item => ({
       natureza: item.natureza?.replace(/\s+/g, ' ').trim() || 'Não informado',
       quantidade: item.quantidade,
       percentual: item.percentual
     })) || [],
 
-    // Dados separados para gráficos de tempo
     dadosDeslocamento: [
-      { categoria: 'Tempo Médio de Deslocamento', tempo: estatisticas.tempoMedioDeslocamento || 0 }
+      { 
+        categoria: 'Tempo Médio de Deslocamento', 
+        tempo: filtros.tipoVisualizacao === 'mensal' 
+          ? Math.round(estatisticas.tempoMedioDeslocamentoChegada || 0)
+          : (estatisticas.tempoMedioDeslocamento?.horas || 0) * 60 + (estatisticas.tempoMedioDeslocamento?.minutos || 0),
+        formatted: filtros.tipoVisualizacao === 'mensal'
+          ? formatarTempo(estatisticas.tempoMedioDeslocamentoChegada)
+          : (estatisticas.tempoMedioDeslocamento?.formatted || '0h 0min')
+      }
     ],
     
     dadosAtendimento: [
-      { categoria: 'Tempo Médio de Atendimento', tempo: estatisticas.tempoMedioAtendimento || 0 }
+      { 
+        categoria: 'Tempo Médio de Atendimento', 
+        tempo: filtros.tipoVisualizacao === 'mensal'
+          ? Math.round(estatisticas.tempoMedioDespachoChegada || 0)
+          : (estatisticas.tempoMedioAtendimento?.horas || 0) * 60 + (estatisticas.tempoMedioAtendimento?.minutos || 0),
+        formatted: filtros.tipoVisualizacao === 'mensal'
+          ? formatarTempo(estatisticas.tempoMedioDespachoChegada)
+          : (estatisticas.tempoMedioAtendimento?.formatted || '0h 0min')
+      }
     ]
   } : null;
 
@@ -394,6 +275,11 @@ function Dashboard() {
           margin-top: 1rem;
         }
 
+        .chart-container-pie {
+          height: 400px;
+          margin-top: 1rem;
+        }
+
         .recent-list {
           max-height: 300px;
           overflow-y: auto;
@@ -485,7 +371,11 @@ function Dashboard() {
         <div className="dashboard-header">
           <h1 className="dashboard-title">Dashboard de Ocorrências</h1>
           <p className="dashboard-subtitle">
-            Análise dos dados extraídos dos PDFs processados
+            {filtros.tipoVisualizacao === 'mensal' 
+              ? `Análise mensal - ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][filtros.mes - 1]} de ${filtros.ano}`
+              : 'Análise dos dados extraídos dos PDFs processados'
+            }
           </p>
         </div>
 
@@ -515,10 +405,59 @@ function Dashboard() {
           </div>
         )}
 
-        {/* Dashboard Content */}
         {!loading && !error && dadosProcessados && (
           <>
-            {/* Cards de Estatísticas Principais */}
+            <div className="filters-section">
+              <div className="filters-grid">
+                <div className="filter-group">
+                  <label className="filter-label">Tipo de Visualização</label>
+                  <select 
+                    className="filter-select"
+                    value={filtros.tipoVisualizacao}
+                    onChange={(e) => setFiltros(prev => ({...prev, tipoVisualizacao: e.target.value}))}
+                  >
+                    <option value="geral">Dados Gerais</option>
+                    <option value="mensal">Por Mês</option>
+                  </select>
+                </div>
+                
+                {filtros.tipoVisualizacao === 'mensal' && (
+                  <>
+                    <div className="filter-group">
+                      <label className="filter-label">Ano</label>
+                      <select 
+                        className="filter-select"
+                        value={filtros.ano}
+                        onChange={(e) => setFiltros(prev => ({...prev, ano: parseInt(e.target.value)}))}
+                      >
+                        {[2024, 2025, 2026].map(ano => (
+                          <option key={ano} value={ano}>{ano}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="filter-group">
+                      <label className="filter-label">Mês</label>
+                      <select 
+                        className="filter-select"
+                        value={filtros.mes}
+                        onChange={(e) => setFiltros(prev => ({...prev, mes: parseInt(e.target.value)}))}
+                      >
+                        {[
+                          {valor: 1, nome: 'Janeiro'}, {valor: 2, nome: 'Fevereiro'}, {valor: 3, nome: 'Março'},
+                          {valor: 4, nome: 'Abril'}, {valor: 5, nome: 'Maio'}, {valor: 6, nome: 'Junho'},
+                          {valor: 7, nome: 'Julho'}, {valor: 8, nome: 'Agosto'}, {valor: 9, nome: 'Setembro'},
+                          {valor: 10, nome: 'Outubro'}, {valor: 11, nome: 'Novembro'}, {valor: 12, nome: 'Dezembro'}
+                        ].map(mes => (
+                          <option key={mes.valor} value={mes.valor}>{mes.nome}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
             <div className="card-full summary-stats">
               <div className="stat-item">
                 <div className="stat-number">{dadosProcessados.totalOcorrencias}</div>
@@ -527,49 +466,65 @@ function Dashboard() {
               
               <div className="stat-item">
                 <div className="stat-number">{dadosProcessados.tempoMedioDeslocamento}</div>
-                <div className="stat-label">Tempo Médio Deslocamento (min)</div>
+                <div className="stat-label">Tempo Médio Deslocamento</div>
               </div>
               
               <div className="stat-item">
                 <div className="stat-number">{dadosProcessados.tempoMedioAtendimento}</div>
-                <div className="stat-label">Tempo Médio Atendimento (min)</div>
+                <div className="stat-label">Tempo Médio Atendimento</div>
               </div>
-              
+
               <div className="stat-item">
-                <div className="stat-number">{dadosProcessados.totalEmpenhosAnalisados}</div>
-                <div className="stat-label">Total de Empenhos</div>
+                <div className="stat-number">{dadosProcessados.tempoMedioDespachoLiberacao}</div>
+                <div className="stat-label">Tempo Despacho à Liberação</div>
               </div>
             </div>
 
-            {/* Gráficos */}
             <div className="dashboard-grid">
-              {/* Tipos de Sinistro/Natureza */}
-              <div className="card">
-                <h2>📋 Distribuição por Tipo de Natureza</h2>
-                <div className="chart-container">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={dadosProcessados.tiposSinistro}
-                        dataKey="quantidade"
-                        nameKey="natureza"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        label={({ percentual }) => `${percentual}%`}
-                      >
-                        {dadosProcessados.tiposSinistro.map((entry, index) => (
-                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value, name) => [value, name]} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+              {dadosProcessados.tiposSinistro && dadosProcessados.tiposSinistro.length > 0 && (
+                <div className="card">
+                  <h2>
+                    📋 Tipo de Sinistro
+                    {filtros.tipoVisualizacao === 'mensal' && (
+                      <span style={{ fontSize: '0.8em', color: '#6b7280', fontWeight: 'normal' }}>
+                        {' '}({['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][filtros.mes - 1]} {filtros.ano})
+                      </span>
+                    )}
+                  </h2>
+                  <div className="chart-container-pie">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={dadosProcessados.tiposSinistro}
+                          dataKey="quantidade"
+                          nameKey="natureza"
+                          cx="50%"
+                          cy="40%"
+                          outerRadius={80}
+                          label={({ percentual }) => `${percentual}%`}
+                        >
+                          {dadosProcessados.tiposSinistro.map((entry, index) => (
+                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value, name) => [value, name]} />
+                        <Legend 
+                          verticalAlign="bottom" 
+                          height={80}
+                          wrapperStyle={{
+                            paddingTop: '0px',
+                            fontSize: '12px',
+                            lineHeight: '0.5',
+                            marginTop: '-20px'
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Tempo Médio de Deslocamento */}
               <div className="card">
                 <h2>🚗 Tempo Médio de Deslocamento</h2>
                 <div className="chart-container">
@@ -587,14 +542,18 @@ function Dashboard() {
                         tick={{ fontSize: 12 }} 
                         label={{ value: 'Minutos', angle: -90, position: 'insideLeft' }}
                       />
-                      <Tooltip formatter={(value) => [`${value} minutos`, 'Tempo']} />
+                      <Tooltip 
+                        formatter={(value, name, props) => [
+                          props.payload.formatted, 
+                          'Tempo'
+                        ]} 
+                      />
                       <Bar dataKey="tempo" fill="#1e40af" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Tempo Médio de Atendimento */}
               <div className="card">
                 <h2>⏰ Tempo Médio de Atendimento</h2>
                 <div className="chart-container">
@@ -612,36 +571,55 @@ function Dashboard() {
                         tick={{ fontSize: 12 }} 
                         label={{ value: 'Minutos', angle: -90, position: 'insideLeft' }}
                       />
-                      <Tooltip formatter={(value) => [`${value} minutos`, 'Tempo']} />
+                      <Tooltip 
+                        formatter={(value, name, props) => [
+                          props.payload.formatted, 
+                          'Tempo'
+                        ]} 
+                      />
                       <Bar dataKey="tempo" fill="#16a34a" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Resumo Detalhado por Natureza */}
-              <div className="card">
-                <h2>📊 Detalhamento por Natureza</h2>
-                <div style={{ padding: '1rem 0' }}>
-                  {dadosProcessados.tiposSinistro.map((item, index) => (
-                    <div key={index} style={{ 
-                      padding: '0.75rem', 
-                      marginBottom: '0.5rem',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: '8px',
-                      borderLeft: `4px solid ${COLORS[index % COLORS.length]}`
-                    }}>
-                      <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
-                        {item.natureza}
-                      </div>
-                      <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
-                        Quantidade: {item.quantidade} ocorrências • Representa: {item.percentual}% do total
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
+              {dadosProcessados.tiposSinistro && dadosProcessados.tiposSinistro.length > 0 && (
+                <div className="card">
+                  <h2>
+                    📊 Detalhamento por Natureza
+                    {filtros.tipoVisualizacao === 'mensal' && (
+                      <span style={{ fontSize: '0.8em', color: '#6b7280', fontWeight: 'normal' }}>
+                        {' '}({['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][filtros.mes - 1]} {filtros.ano})
+                      </span>
+                    )}
+                  </h2>
+                  <div style={{ 
+                    padding: '1rem 0',
+                    maxHeight: '400px',
+                    overflowY: 'auto',
+                    paddingRight: '0.5rem'
+                  }}>
+                    {dadosProcessados.tiposSinistro.map((item, index) => (
+                      <div key={index} style={{ 
+                        padding: '0.75rem', 
+                        marginBottom: '0.5rem',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '8px',
+                        borderLeft: `4px solid ${COLORS[index % COLORS.length]}`
+                      }}>
+                        <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
+                          {item.natureza}
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                          Quantidade: {item.quantidade} ocorrências • Representa: {item.percentual}% do total
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
           </>
         )}
 
