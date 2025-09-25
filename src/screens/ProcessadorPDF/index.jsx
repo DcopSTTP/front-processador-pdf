@@ -57,7 +57,7 @@ function ProcessadorPDF({ onViewDetails }) {
           <div style={headerIconStyle}>
             <ProcessIcon style={{ color: 'white' }} />
           </div>
-          <h1 style={titleStyle}>Processador de PDF de Ocorrências</h1>
+          <h1 style={titleStyle}>Processador de Ocorrências</h1>
           <p style={subtitleStyle}>Extraia e reorganize informações de relatórios de ocorrência</p>
         </div>
 

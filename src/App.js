@@ -5,18 +5,16 @@ import EsqueciSenha from './screens/EsqueciASenha';
 import Login from './screens/Login';
 import Menu from './screens/Menu';
 
-// Função para verificar se o token expirou (24h)
 const isTokenExpired = () => {
   const loginTime = localStorage.getItem('loginTime');
   if (!loginTime) return true;
   
   const now = new Date().getTime();
-  const twentyFourHours = 24 * 60 * 60 * 1000; // 24h em milliseconds
+  const twentyFourHours = 24 * 60 * 60 * 1000; 
   
   return (now - parseInt(loginTime)) > twentyFourHours;
 };
 
-// Componente para proteger rotas privadas
 function PrivateRoute({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -27,11 +25,9 @@ function PrivateRoute({ children }) {
       const isLoggedIn = localStorage.getItem('isLoggedIn');
       const accessToken = localStorage.getItem('access_token');
       
-      // Verificar se tem todos os dados necessários e se o token não expirou
       if (savedUserData && isLoggedIn === 'true' && accessToken && !isTokenExpired()) {
         setIsAuthenticated(true);
       } else {
-        // Se token expirou ou dados estão incompletos, limpar tudo
         if (isTokenExpired()) {
           localStorage.removeItem('userData');
           localStorage.removeItem('isLoggedIn');
@@ -62,7 +58,6 @@ function App() {
 
   const handleLogout = () => {
     setUserData(null);
-    // Limpar dados da sessão
     localStorage.removeItem('userData');
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('access_token');
@@ -73,7 +68,6 @@ function App() {
     localStorage.removeItem('acesso');
   };
 
-  // Verificar se já existe uma sessão salva ao carregar o app
   useEffect(() => {
     const savedUserData = localStorage.getItem('userData');
     const isLoggedIn = localStorage.getItem('isLoggedIn');
@@ -84,12 +78,10 @@ function App() {
         const parsedUserData = JSON.parse(savedUserData);
         setUserData(parsedUserData);
       } catch (error) {
-        handleLogout(); // Usar a função de logout para limpar tudo
+        handleLogout(); 
       }
     } else {
-      // Token expirou ou dados incompletos
       if (isTokenExpired()) {
-        // Mostrar alerta de sessão expirada
         Swal.fire({
           icon: 'warning',
           title: 'Sessão Expirada',
@@ -99,30 +91,26 @@ function App() {
           allowOutsideClick: false,
           allowEscapeKey: false
         }).then(() => {
-          handleLogout(); // Só fazer logout após o usuário confirmar
+          handleLogout(); 
         });
       } else {
-        handleLogout(); // Limpar sessão para outros casos
+        handleLogout(); 
       }
     }
   }, []);
 
   const handleLogin = (data) => {
     setUserData(data);
-    // Salvar dados da sessão no localStorage
     localStorage.setItem('userData', JSON.stringify(data));
     localStorage.setItem('isLoggedIn', 'true');
   };
 
   const handleSignup = () => {
-    // Após cadastro bem-sucedido, redirecionar para login
-    // A navegação será feita pelo componente Signup
   };
 
   return (
     <Router>
       <Routes>
-        {/* Rotas públicas */}
         <Route 
           path="/login" 
           element={
@@ -137,7 +125,6 @@ function App() {
           element={<EsqueciSenha />} 
         />
 
-        {/* Rotas protegidas */}
         <Route
           path="/dashboard"
           element={
@@ -209,13 +196,11 @@ function App() {
           }
         />
 
-        {/* Rota padrão - redireciona para dashboard ou login */}
         <Route 
           path="/" 
           element={<Navigate to={userData ? "/dashboard" : "/login"} />} 
         />
 
-        {/* Rota 404 */}
         <Route 
           path="*" 
           element={<Navigate to={userData ? "/dashboard" : "/login"} />} 
