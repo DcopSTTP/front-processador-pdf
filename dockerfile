@@ -10,7 +10,8 @@ COPY . .
 
 EXPOSE 3029
 
-CMD ["npx", "serve", "-s", "build", "-p", "3029"]
+CMD ["serve", "-s", "build", "-l", "3029"]
+
 
 
 
