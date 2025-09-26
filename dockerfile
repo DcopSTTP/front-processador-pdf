@@ -1,17 +1,12 @@
 
-FROM node:20-alpine
+# Base image
+FROM node:22.14.0 as build
 
+# Set working directory
 WORKDIR /app
 
-COPY package*.json ./
-
-RUN npm ci
-
+# Copy the rest of the application code
 COPY . .
-
-RUN npm run build
-
-RUN mkdir -p uploads
 
 EXPOSE 3000 3001
 
