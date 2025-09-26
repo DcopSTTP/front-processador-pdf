@@ -109,6 +109,11 @@ export const successButtonStyle = {
   backgroundColor: '#16a34a'
 };
 
+export const dangerButtonStyle = {
+  ...buttonStyle,
+  backgroundColor: '#dc2626'
+};
+
 export const filePreviewStyle = {
   display: 'flex',
   alignItems: 'center',

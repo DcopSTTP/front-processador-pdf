@@ -1,6 +1,6 @@
 import { AlertCircleIcon } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import { DataPreview } from '../../componentes/DataPreview';
+import { DataEditor } from '../../componentes/DataEditor';
 import { FilePreview } from '../../componentes/FilePreview';
 import { ProcessIcon } from '../../componentes/ProcessIcon';
 import { FileUpload } from '../../componentes/FileUpload';
@@ -92,9 +92,10 @@ function ProcessadorPDF({ onViewDetails }) {
         </div>
 
         {extractedData && (
-          <DataPreview 
+          <DataEditor 
             extractedData={extractedData} 
-            saveToBackend={saveToBackend} 
+            saveToBackend={saveToBackend}
+            onCancel={() => setExtractedData(null)} 
           />
         )}
 
@@ -111,10 +112,14 @@ function ProcessadorPDF({ onViewDetails }) {
             </li>
             <li style={instructionItemStyle}>
               <span style={{ color: '#2563eb', fontWeight: '500' }}>3.</span>
-              <span>Visualize os dados extraídos e clique em "Salvar Dados no Sistema"</span>
+              <span>Revise e edite os dados extraídos se necessário</span>
             </li>
             <li style={instructionItemStyle}>
               <span style={{ color: '#2563eb', fontWeight: '500' }}>4.</span>
+              <span>Clique em "Salvar Dados no Sistema" após revisar</span>
+            </li>
+            <li style={instructionItemStyle}>
+              <span style={{ color: '#2563eb', fontWeight: '500' }}>5.</span>
               <span>Os dados extraídos incluem: Natureza → Narrativas → Localização → Empenhos → Relatos</span>
             </li>
           </ul>

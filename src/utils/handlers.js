@@ -93,8 +93,10 @@ export const createHandlers = (
     }
   };
 
-  const saveToBackend = async () => {
-    if (!extractedData) return;
+  const saveToBackend = async (dataToSave) => {
+    // Se não receber dados como parâmetro, usar extractedData
+    const data = dataToSave || extractedData;
+    if (!data) return;
     
     try {
       // Mostrar loading
@@ -109,7 +111,7 @@ export const createHandlers = (
         }
       });
 
-      const result = await saveDataToBackend(extractedData);
+      const result = await saveDataToBackend(data);
       
       // Extrair informações do resultado para exibir
       const ocorrencia = result.data || result;
