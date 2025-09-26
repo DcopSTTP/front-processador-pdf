@@ -1,7 +1,6 @@
 import axios from "axios";
 
-//export const URL = 'http://192.168.1.101:3335';
-export const URL = 'http://localhost:3335';
+export const URL = process.env.REACT_APP_API_URL;
 const instance = axios.create({
   baseURL: URL,
   timeout: 30000,
