@@ -10,7 +10,9 @@ COPY . .
 
 EXPOSE 3029
 
-CMD ["serve", "-s", "build", "-l", "3029"]
+CMD ["node", "server.js"]
+
+
 
 
 
