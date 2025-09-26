@@ -8,9 +8,13 @@ WORKDIR /app
 # Copy the rest of the application code
 COPY . .
 
+# Install serve globally
+RUN npm install -g serve
+
 EXPOSE 3029
 
-CMD ["node", "server.js"]
+CMD ["npx", "serve", "-s", "build", "-l", "3029"]
+
 
 
 
