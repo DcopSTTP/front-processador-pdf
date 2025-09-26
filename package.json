@@ -1,6 +1,13 @@
 {
   "name": "front-processador-pdf",
   "version": "0.1.0",
+  "user": "lohuamalima",
+  "port": "3000",
+  "slack": "U07LHMGJP97",
+  "dockerhubPush": false,
+  "expose": "3029",
+  "author": "",
+  "description": "",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
